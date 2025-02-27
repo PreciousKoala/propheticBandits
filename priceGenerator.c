@@ -12,6 +12,8 @@ int main(int argc, char *argv[]) {
   uint8_t exponentialFlag = 0;
   uint8_t autoregressiveFlag = 0;
 
+  char distLetter = 'u';
+
   double uniformHigh = 1;
   double gaussianMean = 1;
   double exponentialMean = 1;
@@ -27,6 +29,7 @@ int main(int argc, char *argv[]) {
 
   opterr = 0;
 
+  // TODO: add sigma and low arguments for -g and -u
   while ((opt = getopt(argc, argv, "hu:g:e:a:t:n:")) != -1) {
     switch (opt) {
     case 'h':
@@ -55,6 +58,7 @@ int main(int argc, char *argv[]) {
       gaussianFlag = 0;
       exponentialFlag = 0;
       autoregressiveFlag = 0;
+      distLetter = 'u';
 
       uniformHigh = atof(optarg);
       break;
@@ -63,6 +67,7 @@ int main(int argc, char *argv[]) {
       gaussianFlag = 1;
       exponentialFlag = 0;
       autoregressiveFlag = 0;
+      distLetter = 'g';
 
       gaussianMean = atof(optarg);
       break;
@@ -71,6 +76,7 @@ int main(int argc, char *argv[]) {
       gaussianFlag = 0;
       exponentialFlag = 1;
       autoregressiveFlag = 0;
+      distLetter = 'e';
 
       exponentialMean = atof(optarg);
       break;
@@ -79,6 +85,7 @@ int main(int argc, char *argv[]) {
       gaussianFlag = 0;
       exponentialFlag = 0;
       autoregressiveFlag = 1;
+      distLetter = 'a';
 
       autoregressivePhi = atof(optarg);
       break;
@@ -111,8 +118,8 @@ int main(int argc, char *argv[]) {
   gsl_rng_set(r, time(NULL));
 
   char filename[256];
-  snprintf(filename, sizeof(filename), "prophetData/dataT%luN%lu.dat",
-           totalRounds, pricesPerRound);
+  snprintf(filename, sizeof(filename), "prophetData/%cdataT%luN%lu.dat",
+           distLetter, totalRounds, pricesPerRound);
 
   FILE *file = fopen(filename, "wb");
   if (!file) {
@@ -154,7 +161,7 @@ int main(int argc, char *argv[]) {
       double noise = gsl_ran_gaussian(r, 1);
       double a = prev * autoregressivePhi + noise;
       prev = a;
-      printf("%lf\n", a);
+      /* printf("%lf\n", a); */
       fwrite(&a, sizeof(a), 1, file);
     }
   }
