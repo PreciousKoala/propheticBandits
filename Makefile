@@ -5,6 +5,8 @@ propheticBandits: propheticBandits.c
 
 priceGenerator: priceGenerator.c
 	@gcc priceGenerator.c -o priceGenerator -lgsl -lgslcblas -lm -fsanitize=address
+	@mkdir -p prophetData
 
 clean:
 	@rm propheticBandits
+	@rm priceGenerator
