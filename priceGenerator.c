@@ -110,11 +110,11 @@ int main(int argc, char *argv[]) {
   r = gsl_rng_alloc(T);
   gsl_rng_set(r, time(NULL));
 
-  /* char filename[1024]; */
-  /* snprintf(filename, sizeof(filename), "prophetData/dataT%lluN%lluN", */
-  /* totalRounds, pricesPerRound); */
+  char filename[256];
+  snprintf(filename, sizeof(filename), "prophetData/dataT%luN%lu.dat",
+           totalRounds, pricesPerRound);
 
-  FILE *file = fopen("prophetData/test.dat", "wb");
+  FILE *file = fopen(filename, "wb");
   if (!file) {
     printf("Error opening file");
     return 1;
