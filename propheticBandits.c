@@ -1,7 +1,22 @@
 #include <getopt.h>
+#include <gsl/gsl_rng.h>
+#include <math.h>
 #include <stdint.h>
 #include <stdio.h>
 #include <stdlib.h>
+
+void normalizePrices(double min, double max, double *data, uint64_t totalRounds,
+                     uint64_t pricesPerRound) {
+  for (uint64_t i = 0; i < totalRounds * pricesPerRound; i++) {
+    data[i] = (data[i] - min) / (max - min);
+
+    /*
+     * TEST:
+     * uncomment this line to see if the data is normalized.
+     * printf("%lf\n", data[i]);
+     */
+  }
+}
 
 int main(int argc, char **argv) {
   uint32_t maxItems = 1;
@@ -14,7 +29,7 @@ int main(int argc, char **argv) {
 
   opterr = 0;
 
-  while ((opt = getopt(argc, argv, ":h:m:keux")) != -1) {
+  while ((opt = getopt(argc, argv, ":hm:keux")) != -1) {
     switch (opt) {
     case 'h':
       printf("Usage:\n");
@@ -53,6 +68,13 @@ int main(int argc, char **argv) {
     }
   }
 
+  /* INFO: Data array holds all of the prices found in the data file.
+   * It's also a 1D array for values that are better suited in a 2D array, but
+   * because of the sheer size of our data, it's better to save them like this.
+   * Access the n'th price of the t'th round with data[pricesPerRound * t + n].
+   *
+   * WARN: Don't run this program for files close to your RAM
+   */
   double *data;
   uint64_t totalRounds, pricesPerRound;
   // opens binary data file
@@ -78,6 +100,46 @@ int main(int argc, char **argv) {
     printf("Error: No filename provided\n");
     return 1;
   }
+
+  double min = INFINITY;
+  double max = -INFINITY;
+
+  for (uint64_t i = 0; i < totalRounds * pricesPerRound; i++) {
+    if (data[i] < min)
+      min = data[i];
+    if (data[i] > max)
+      max = data[i];
+  }
+
+  normalizePrices(min, max, data, totalRounds, pricesPerRound);
+
+  /*
+   * TODO: optimal.c
+   * findOpt(double *data, uint8_t keepItemsFlag, uint8_t maxItems, uint64_t
+   * totalRounds, uint64_t pricesPerRound)
+   */
+
+  /*
+   * TODO: epsilon greedy
+   * epsilonGreedy(double *data, totalRounds, uint8_t keepItemsFlag, uint8_t
+   * maxItems, uint64_t totalRounds, uint64_t pricesPerRound)
+   */
+
+  // TODO: plot regret
+
+  /*
+   * TODO: ucb1
+   * ucb1(double *data, totalRounds, uint8_t keepItemsFlag, uint8_t
+   * maxItems, uint64_t totalRounds, uint64_t pricesPerRound)
+   */
+
+  /*
+   * TODO: exp3
+   * exp3(double *data, totalRounds, uint8_t keepItemsFlag, uint8_t
+   * maxItems, uint64_t totalRounds, uint64_t pricesPerRound)
+   * exp3 requires prices normalized according to min and max round opt
+   * maybe
+   */
 
   free(data);
   return 0;
