@@ -1,10 +1,10 @@
 all: propheticBandits priceGenerator
 
 propheticBandits: propheticBandits.c
-	@gcc propheticBandits.c -o propheticBandits
+	@gcc propheticBandits.c -Wall -O3 -o propheticBandits -lgsl -lgslcblas -lm -fsanitize=address
 
 priceGenerator: priceGenerator.c
-	@gcc priceGenerator.c -o priceGenerator -lgsl -lgslcblas -lm -fsanitize=address
+	@gcc priceGenerator.c -Wall -O3 -o priceGenerator -lgsl -lgslcblas -lm -fsanitize=address
 	@mkdir -p prophetData
 
 clean:
