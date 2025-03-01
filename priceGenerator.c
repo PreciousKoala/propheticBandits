@@ -19,9 +19,6 @@ int main(int argc, char *argv[]) {
   double exponentialMean = 1;
   double autoregressivePhi = 1;
 
-  uint8_t roundsFlag = 0;
-  uint8_t pricesFlag = 0;
-
   uint64_t totalRounds = 1000;
   uint64_t pricesPerRound = 10;
 
@@ -90,13 +87,9 @@ int main(int argc, char *argv[]) {
       autoregressivePhi = atof(optarg);
       break;
     case 't':
-      roundsFlag = 1;
-
       totalRounds = atoll(optarg);
       break;
     case 'n':
-      pricesFlag = 1;
-
       pricesPerRound = atoll(optarg);
       break;
     case '?':
@@ -131,7 +124,7 @@ int main(int argc, char *argv[]) {
   fwrite(&pricesPerRound, sizeof(pricesPerRound), 1, file);
 
   if (uniformFlag) {
-    for (int i = 0; i < totalRounds * pricesPerRound; i++) {
+    for (uint64_t i = 0; i < totalRounds * pricesPerRound; i++) {
       double u = gsl_rng_uniform(r) * uniformHigh;
       /* printf("%lf\n", u); */
       fwrite(&u, sizeof(u), 1, file);
@@ -139,7 +132,7 @@ int main(int argc, char *argv[]) {
   }
 
   if (gaussianFlag) {
-    for (int i = 0; i < totalRounds * pricesPerRound; i++) {
+    for (uint64_t i = 0; i < totalRounds * pricesPerRound; i++) {
       double g = gsl_ran_gaussian(r, 1) + gaussianMean;
       /* printf("%lf\n", g); */
       fwrite(&g, sizeof(g), 1, file);
@@ -147,7 +140,7 @@ int main(int argc, char *argv[]) {
   }
 
   if (exponentialFlag) {
-    for (int i = 0; i < totalRounds * pricesPerRound; i++) {
+    for (uint64_t i = 0; i < totalRounds * pricesPerRound; i++) {
       double e = gsl_ran_exponential(r, exponentialMean);
       /* printf("%lf\n", e); */
       fwrite(&e, sizeof(e), 1, file);
@@ -156,7 +149,7 @@ int main(int argc, char *argv[]) {
 
   if (autoregressiveFlag) {
     double prev = 0;
-    for (int i = 0; i < totalRounds * pricesPerRound; i++) {
+    for (uint64_t i = 0; i < totalRounds * pricesPerRound; i++) {
       // TODO: evaluate if this is sufficient
       double noise = gsl_ran_gaussian(r, 1);
       double a = prev * autoregressivePhi + noise;
@@ -166,7 +159,7 @@ int main(int argc, char *argv[]) {
     }
   }
 
-  /*  TEST: For quick testing if the distributions are correct:
+  /*  INFO: For quick testing if the distributions are correct:
    *
    *  Uncomment the printf lines above.
    *  Run the command:
