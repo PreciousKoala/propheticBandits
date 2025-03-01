@@ -5,6 +5,8 @@
 #include <stdio.h>
 #include <stdlib.h>
 
+#include "optimal.c"
+
 void normalizePrices(double min, double max, double *data, uint64_t totalRounds,
                      uint64_t pricesPerRound) {
   for (uint64_t i = 0; i < totalRounds * pricesPerRound; i++) {
@@ -22,7 +24,7 @@ int main(int argc, char **argv) {
   uint32_t maxItems = 1;
   uint8_t keepItemsFlag = 0;
   uint8_t epsilonGreedyFlag = 0;
-  uint8_t usb1Flag = 0;
+  uint8_t ucb1Flag = 0;
   uint8_t exp3Flag = 0;
 
   int opt;
@@ -54,7 +56,7 @@ int main(int argc, char **argv) {
       epsilonGreedyFlag = 1;
       break;
     case 'u':
-      usb1Flag = 1;
+      ucb1Flag = 1;
       break;
     case 'x':
       exp3Flag = 1;
@@ -70,8 +72,9 @@ int main(int argc, char **argv) {
 
   /* INFO: Data array holds all of the prices found in the data file.
    * It's also a 1D array for values that are better suited in a 2D array, but
-   * because of the sheer size of our data, it's better to save them like this.
-   * Access the n'th price of the t'th round with data[pricesPerRound * t + n].
+   * because of the sheer size of our data, it's better to save them like
+   * this. Access the n'th price of the t'th round with data[pricesPerRound *
+   * t + n].
    *
    * WARN: Don't run this program for files close to your RAM
    */
@@ -111,13 +114,13 @@ int main(int argc, char **argv) {
       max = data[i];
   }
 
+  // Normalize prices to [0, 1]
   normalizePrices(min, max, data, totalRounds, pricesPerRound);
 
-  /*
-   * TODO: optimal.c
-   * findOpt(double *data, uint8_t keepItemsFlag, uint8_t maxItems, uint64_t
-   * totalRounds, uint64_t pricesPerRound)
-   */
+  double *optAlg = malloc(totalRounds * sizeof(double));
+  double *totalOpt = malloc(totalRounds * sizeof(double));
+
+  findOpt(data, optAlg, keepItemsFlag, maxItems, totalRounds, pricesPerRound);
 
   /*
    * TODO: epsilon greedy
@@ -138,9 +141,20 @@ int main(int argc, char **argv) {
    * exp3(double *data, totalRounds, uint8_t keepItemsFlag, uint8_t
    * maxItems, uint64_t totalRounds, uint64_t pricesPerRound)
    * exp3 requires prices normalized according to min and max round opt
-   * maybe
+   * maybe normalise again?
    */
 
+  if (epsilonGreedyFlag) {
+  }
+
+  if (ucb1Flag) {
+  }
+
+  if (exp3Flag) {
+  }
+
   free(data);
+  free(optAlg);
+  free(totalOpt);
   return 0;
 }
