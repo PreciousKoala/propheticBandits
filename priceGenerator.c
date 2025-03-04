@@ -52,6 +52,7 @@ int main(int argc, char *argv[]) {
   opterr = 0;
 
   // TODO: add sigma and low arguments for -g and -u
+  // maybe also a second order autoregressive model
   while ((opt = getopt(argc, argv, "hu:g:e:a:t:n:")) != -1) {
     switch (opt) {
     case 'h':
@@ -161,7 +162,7 @@ int main(int argc, char *argv[]) {
       double noise = gsl_ran_gaussian(r, 1);
       double a = prev * autoregressivePhi + noise;
       prev = a;
-      /* printf("%lf\n", a); */
+      printf("%lf\n", a);
       fwrite(&a, sizeof(a), 1, file);
     }
   }
