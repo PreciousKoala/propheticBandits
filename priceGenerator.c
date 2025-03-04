@@ -6,7 +6,32 @@
 #include <stdlib.h>
 #include <time.h>
 
+void printHelp() {
+  printf("Usage:\n"
+         "    # Only one option can be used at a time.\n"
+         "    # If more than one option is chosen, the program chooses the "
+         "last one to be declared.\n"
+         "    # If no option is chosen, the program chooses `-u 1`.\n\n"
+         "    priceGenerator [option] [-t <number of rounds>] [-n <prices "
+         "per round>]\n"
+         "    priceGenerator -h      # Display this help screen.\n\n"
+         "Options:\n"
+         "    -u <high>            Generate prices from the Uniform "
+         "Distribution from 0 to <high> (default).\n"
+         "    -g <mean>            Generate prices from the Gaussian "
+         "Distribution with sigma 1.\n"
+         "    -e <mean>            Generate prices from the Exponential "
+         "Distribution.\n"
+         "    -a <phi>             Generate prices from an Autoregressive "
+         "Model of order 1.\n");
+}
+
 int main(int argc, char *argv[]) {
+  if (argc == 1) {
+    printHelp();
+    return 0;
+  }
+
   uint8_t uniformFlag = 1;
   uint8_t gaussianFlag = 0;
   uint8_t exponentialFlag = 0;
@@ -30,25 +55,7 @@ int main(int argc, char *argv[]) {
   while ((opt = getopt(argc, argv, "hu:g:e:a:t:n:")) != -1) {
     switch (opt) {
     case 'h':
-      printf("Usage:\n");
-      printf("    # Only one option can be used at a time.\n"
-             "    # If more than one option is chosen, the program chooses the "
-             "last one to be declared.\n"
-             "    # If no option is chosen, the program chooses `-u 1`.\n"
-             "    # The default number of rounds is 1000, and the default "
-             "number of prices per round is 10\n\n");
-      printf("    priceGenerator [option] [-t <number of rounds>] [-n <prices "
-             "per round>]\n");
-      printf("    priceGenerator -h      # Display this help screen.\n\n");
-      printf("Options:\n");
-      printf("    -u <high>            Generate prices from the Uniform "
-             "Distribution from 0 to <high>.\n");
-      printf("    -g <mean>            Generate prices from the Gaussian "
-             "Distribution with sigma 1.\n");
-      printf("    -e <mean>          Generate prices from the Exponential "
-             "Distribution.\n");
-      printf("    -a <phi>             Generate prices from an Autoregressive "
-             "Model of order 1.\n");
+      printHelp();
       return 0;
     case 'u':
       uniformFlag = 1;
@@ -148,7 +155,7 @@ int main(int argc, char *argv[]) {
   }
 
   if (autoregressiveFlag) {
-    double prev = 0;
+    double prev = gsl_ran_gaussian(r, 1);
     for (uint64_t i = 0; i < totalRounds * pricesPerRound; i++) {
       // TODO: evaluate if this is sufficient
       double noise = gsl_ran_gaussian(r, 1);
