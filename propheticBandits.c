@@ -5,24 +5,41 @@
 #include <stdio.h>
 #include <stdlib.h>
 
+#include "epsilonGreedy.c"
 #include "optimal.c"
 
 void normalizePrices(double min, double max, double *data, uint64_t totalRounds,
                      uint64_t pricesPerRound) {
-  for (uint64_t i = 0; i < totalRounds * pricesPerRound; i++) {
-    data[i] = (data[i] - min) / (max - min);
-
-    /*
-     * TEST:
-     * uncomment this line to see if the data is normalized.
-     * printf("%lf\n", data[i]);
-     */
+  for (uint64_t t = 0; t < totalRounds * pricesPerRound; t++) {
+    data[t] = (data[t] - min) / (max - min);
   }
 }
 
+void printHelp() {
+  printf("Usage:\n"
+         "    propheticBandits [-eux] [-m <integer>] [-t <integer>] "
+         "<file>\n"
+         "    propheticBandits -h      # Display this help screen.\n\n"
+         "Options:\n"
+         "    -t <integer>    Set the number of thresholds (default = 10).\n"
+         "    -m <integer>    Set the number of maximum held items "
+         "(default = 1).\n"
+         /* "    -k      Set the program to be able to keep items at " */
+         /*        "the end of a round.\n" */
+         "    -e              Run the Epsilon Greedy algorithm.\n"
+         "    -u              Run the UCB1 algorithm.\n"
+         "    -x              Run the EXP3 algorithm.\n");
+}
+
 int main(int argc, char **argv) {
+  if (argc == 1) {
+    printHelp();
+    return 0;
+  }
+
+  uint32_t totalThresholds = 10;
   uint32_t maxItems = 1;
-  uint8_t keepItemsFlag = 0;
+  // uint8_t keepItemsFlag = 0;
   uint8_t epsilonGreedyFlag = 0;
   uint8_t ucb1Flag = 0;
   uint8_t exp3Flag = 0;
@@ -31,27 +48,20 @@ int main(int argc, char **argv) {
 
   opterr = 0;
 
-  while ((opt = getopt(argc, argv, ":hm:keux")) != -1) {
+  while ((opt = getopt(argc, argv, ":hm:euxt:")) != -1) {
     switch (opt) {
     case 'h':
-      printf("Usage:\n");
-      printf("    propheticBandits [-keux] [-m <integer>] <file>\n");
-      printf("    propheticBandits -h      # Display this help screen.\n\n");
-      printf("Options:\n");
-      printf("    -m <integer>    Set the number of maximum held items.\n");
-      printf("    -k              Set the program to be able to keep items at "
-             "the end of a round.\n");
-      printf("    -e              Run the Epsilon Greedy algorithm.\n");
-      printf("    -u              Run the UCB1 algorithm.\n");
-      printf("    -x              Run the EXP3 algorithm.\n");
+      printHelp();
       return 0;
+    case 't':
+      totalThresholds = atoi(optarg);
+      break;
     case 'm':
-      if (optind < argc)
-        maxItems = atoi(optarg);
+      maxItems = atoi(optarg);
       break;
-    case 'k':
-      keepItemsFlag = 1;
-      break;
+    /* case 'k': */
+    /*   keepItemsFlag = 1; */
+    /*   break; */
     case 'e':
       epsilonGreedyFlag = 1;
       break;
@@ -62,7 +72,7 @@ int main(int argc, char **argv) {
       exp3Flag = 1;
       break;
     case '?':
-      if (optopt == 'm')
+      if (optopt == 'm' || optopt == 't')
         fprintf(stderr, "Option -%c requires an argument.\n", optopt);
       break;
     default:
@@ -76,7 +86,7 @@ int main(int argc, char **argv) {
    * this. Access the n'th price of the t'th round with data[pricesPerRound *
    * t + n].
    *
-   * WARN: Don't run this program for files close to your RAM
+   * WARN: Don't run this program for very big files (>50m)
    */
   double *data;
   uint64_t totalRounds, pricesPerRound;
@@ -89,6 +99,8 @@ int main(int argc, char **argv) {
       printf("Error opening file\n");
       return 1;
     }
+
+    printf("Importing file...\n");
 
     // first 2 values are 64bit integers
     fread(&totalRounds, sizeof(uint64_t), 1, file);
@@ -115,42 +127,52 @@ int main(int argc, char **argv) {
   }
 
   // Normalize prices to [0, 1]
+  printf("Normalizing prices to [0,1]...\n");
   normalizePrices(min, max, data, totalRounds, pricesPerRound);
 
   double *optAlg = malloc(totalRounds * sizeof(double));
   double *totalOpt = malloc(totalRounds * sizeof(double));
 
-  findOpt(data, optAlg, keepItemsFlag, maxItems, totalRounds, pricesPerRound);
-
-  /*
-   * TODO: epsilon greedy
-   * epsilonGreedy(double *data, totalRounds, uint8_t keepItemsFlag, uint8_t
-   * maxItems, uint64_t totalRounds, uint64_t pricesPerRound)
-   */
-
-  // TODO: plot regret
-
-  /*
-   * TODO: ucb1
-   * ucb1(double *data, totalRounds, uint8_t keepItemsFlag, uint8_t
-   * maxItems, uint64_t totalRounds, uint64_t pricesPerRound)
-   */
-
-  /*
-   * TODO: exp3
-   * exp3(double *data, totalRounds, uint8_t keepItemsFlag, uint8_t
-   * maxItems, uint64_t totalRounds, uint64_t pricesPerRound)
-   * exp3 requires prices normalized according to min and max round opt
-   * maybe normalise again?
-   */
+  printf("Calculating optimal result...\n");
+  findOpt(data, optAlg, maxItems, totalRounds, pricesPerRound);
+  findTotalOpt(optAlg, totalOpt, totalRounds);
 
   if (epsilonGreedyFlag) {
+    printf("Calculating Epsilon-Greedy\n");
+    epsilonGreedy(data, totalThresholds, maxItems, totalRounds, pricesPerRound);
+    // TODO: plot regret
   }
 
   if (ucb1Flag) {
+    /*
+     * TODO: ucb1
+     * ucb1(double *data, uint8_t maxItems, uint64_t totalRounds,
+     * uint64_t pricesPerRound)
+     */
   }
 
   if (exp3Flag) {
+    min = INFINITY;
+    max = -INFINITY;
+
+    for (uint64_t i = 0; i < totalRounds * pricesPerRound; i++) {
+      if (optAlg[i] < min)
+        min = data[i];
+      if (optAlg[i] > max)
+        max = data[i];
+    }
+
+    normalizePrices(min, max, data, totalRounds, pricesPerRound);
+    findOpt(data, optAlg, maxItems, totalRounds, pricesPerRound);
+    findTotalOpt(optAlg, totalOpt, totalRounds);
+
+    /*
+     * TODO: exp3
+     * exp3(double *data, totalRounds, uint8_t keepItemsFlag, uint8_t
+     * maxItems, uint64_t totalRounds, uint64_t pricesPerRound)
+     * exp3 requires prices normalized according to min and max round opt
+     * maybe normalise again?
+     */
   }
 
   free(data);

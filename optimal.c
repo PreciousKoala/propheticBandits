@@ -1,8 +1,8 @@
 #include <stdint.h>
 
-void findOpt(double *data, double *optAlg, uint8_t keepItemsFlag,
-             uint8_t maxItems, uint64_t totalRounds, uint64_t pricesPerRound) {
-  // TODO: do the same but for maxItems>1 and keepItemsFlag=1 (what the fuck)
+void findOpt(double *data, double *optAlg, uint8_t maxItems,
+             uint64_t totalRounds, uint64_t pricesPerRound) {
+  // TODO: do the same but for maxItems>1 (what the fuck)
 
   /*
    * INFO: Based on "Trading Prophets" section 3 lemma 1 by Jose Correa, Andres
@@ -31,11 +31,9 @@ void findOpt(double *data, double *optAlg, uint8_t keepItemsFlag,
   }
 }
 
-void findTotalOpt(double *data, double *optAlg, double *totalOpt,
-                  uint64_t totalRounds) {
+void findTotalOpt(double *optAlg, double *totalOpt, uint64_t totalRounds) {
   totalOpt[0] = optAlg[0];
   for (uint64_t t = 1; t < totalRounds; t++) {
     totalOpt[t] = totalOpt[t - 1] + optAlg[t];
-    /* printf("%lf\n", totalOpt[t]); */
   }
 }
