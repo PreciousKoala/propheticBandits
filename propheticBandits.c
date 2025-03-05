@@ -7,6 +7,7 @@
 
 #include "epsilonGreedy.c"
 #include "optimal.c"
+#include "ucb1.c"
 
 void normalizePrices(double min, double max, double *data, uint64_t totalRounds,
                      uint64_t pricesPerRound) {
@@ -138,17 +139,14 @@ int main(int argc, char **argv) {
   findTotalOpt(optAlg, totalOpt, totalRounds);
 
   if (epsilonGreedyFlag) {
-    printf("Calculating Epsilon-Greedy\n");
+    printf("Calculating Epsilon-Greedy...\n");
     epsilonGreedy(data, totalThresholds, maxItems, totalRounds, pricesPerRound);
     // TODO: plot regret
   }
 
   if (ucb1Flag) {
-    /*
-     * TODO: ucb1
-     * ucb1(double *data, uint8_t maxItems, uint64_t totalRounds,
-     * uint64_t pricesPerRound)
-     */
+    printf("Calculating UCB1...\n");
+    ucb1(data, totalThresholds, maxItems, totalRounds, pricesPerRound);
   }
 
   if (exp3Flag) {
