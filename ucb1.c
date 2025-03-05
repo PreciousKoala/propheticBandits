@@ -1,18 +1,9 @@
-#include <gsl/gsl_rng.h>
 #include <math.h>
 #include <stdint.h>
 #include <stdlib.h>
-#include <time.h>
 
 void ucb1(double *data, uint32_t totalThresholds, uint8_t maxItems,
           uint64_t totalRounds, uint64_t pricesPerRound) {
-  const gsl_rng_type *T;
-  gsl_rng *r;
-  gsl_rng_env_setup();
-  T = gsl_rng_default;
-  r = gsl_rng_alloc(T);
-  gsl_rng_set(r, time(NULL));
-
   // uniformly distributed thresholds in [0,1)
   double *threshold = malloc(totalThresholds * sizeof(double));
   // how much money a threshold has made
@@ -54,7 +45,7 @@ void ucb1(double *data, uint32_t totalThresholds, uint8_t maxItems,
   uint32_t chosenTh;
 
   for (uint8_t t = 0; t < totalThresholds; t++) {
-    chosenTh = threshold[t];
+    chosenTh = t;
     double gain = 0;
     for (uint32_t n = 0; n < pricesPerRound; n++) {
       if ((pricesPerRound - n == heldItems ||
@@ -116,10 +107,9 @@ void ucb1(double *data, uint32_t totalThresholds, uint8_t maxItems,
   totalRoundGain[0] = roundGain[0];
   for (uint64_t t = 1; t < totalRounds; t++) {
     totalRoundGain[t] = totalRoundGain[t - 1] + roundGain[t];
-    printf("%lf\n", totalRoundGain[t]);
+    /* printf("%lf\n", totalRoundGain[t]); */
   }
 
-  gsl_rng_free(r);
   free(threshold);
   free(rewardSum);
   free(timesChosen);
