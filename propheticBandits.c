@@ -6,6 +6,7 @@
 #include <stdlib.h>
 
 #include "epsilonGreedy.c"
+#include "exp3.c"
 #include "optimal.c"
 #include "ucb1.c"
 
@@ -150,27 +151,32 @@ int main(int argc, char **argv) {
   }
 
   if (exp3Flag) {
-    min = INFINITY;
-    max = -INFINITY;
-
-    for (uint64_t i = 0; i < totalRounds * pricesPerRound; i++) {
-      if (optAlg[i] < min)
-        min = data[i];
-      if (optAlg[i] > max)
-        max = data[i];
-    }
-
-    normalizePrices(min, max, data, totalRounds, pricesPerRound);
-    findOpt(data, optAlg, maxItems, totalRounds, pricesPerRound);
-    findTotalOpt(optAlg, totalOpt, totalRounds);
-
-    /*
-     * TODO: exp3
-     * exp3(double *data, totalRounds, uint8_t keepItemsFlag, uint8_t
-     * maxItems, uint64_t totalRounds, uint64_t pricesPerRound)
-     * exp3 requires prices normalized according to min and max round opt
-     * maybe normalise again?
+    /* INFO: The exp3 algorithm requires the feedback to be in range [0,1].
+     * However, our feedback (reward after each round) can be >1.
+     *
+     * A few solutions:
+     *
+     * 1) calculate each reward for each arm and normalize prices according to
+     * the min and max reward of all the arms and rounds.
+     *    pros:
+     *      -accurate normalization (the entire range of 0,1 is reached)
+     *    cons:
+     *      -computational power needed is multiplied by the number of arms
+     *      -cannot compare exp3 with other algorithms easily
+     *
+     * 2) divide all numbers in the data by the number of prices per round / 2,
+     * since each round has N prices and each price is in [0,1], the absolute
+     * best outcome is buying at 0 and selling at 1, therefore the feedback is
+     * at most N/2.
+     *    pros:
+     *      -much faster than option 1
+     *      -can easily revert back, and compare with eGreedy & ucb1
+     *    cons:
+     *      -less accurate
      */
+
+    printf("Calculating EXP3...\n");
+    exp3(data, totalThresholds, maxItems, totalRounds, pricesPerRound);
   }
 
   free(data);
