@@ -4,7 +4,8 @@
 #include <stdlib.h>
 #include <time.h>
 
-void epsilonGreedy(double *reward, uint32_t totalThresholds, uint8_t maxItems,
+void epsilonGreedy(double *reward, double *totalRoundGain,
+                   uint32_t totalThresholds, uint8_t maxItems,
                    uint64_t totalRounds, uint64_t pricesPerRound) {
   const gsl_rng_type *T;
   gsl_rng *r;
@@ -29,7 +30,6 @@ void epsilonGreedy(double *reward, uint32_t totalThresholds, uint8_t maxItems,
   uint64_t explore = 0;
   uint64_t exploit = 0;
   double *roundGain = malloc(totalRounds * sizeof(double));
-  double *totalRoundGain = malloc(totalRounds * sizeof(double));
 
   /**
    * INFO: The epsilon greedy algorithm in short:
@@ -92,5 +92,4 @@ void epsilonGreedy(double *reward, uint32_t totalThresholds, uint8_t maxItems,
   free(timesChosen);
   free(avgReward);
   free(roundGain);
-  free(totalRoundGain);
 }

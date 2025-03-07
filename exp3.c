@@ -4,8 +4,8 @@
 #include <stdlib.h>
 #include <time.h>
 
-void exp3(double *reward, uint32_t totalThresholds, uint8_t maxItems,
-          uint64_t totalRounds, uint64_t pricesPerRound) {
+void exp3(double *reward, double *totalRoundGain, uint32_t totalThresholds,
+          uint8_t maxItems, uint64_t totalRounds, uint64_t pricesPerRound) {
   const gsl_rng_type *T;
   gsl_rng *r;
   gsl_rng_env_setup();
@@ -27,7 +27,6 @@ void exp3(double *reward, uint32_t totalThresholds, uint8_t maxItems,
   }
 
   double *roundGain = malloc(totalRounds * sizeof(double));
-  double *totalRoundGain = malloc(totalRounds * sizeof(double));
 
   /**
    * INFO: The exp3 algorithm in short:
@@ -133,5 +132,4 @@ void exp3(double *reward, uint32_t totalThresholds, uint8_t maxItems,
   free(timesChosen);
   free(avgReward);
   free(roundGain);
-  free(totalRoundGain);
 }

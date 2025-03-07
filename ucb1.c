@@ -2,8 +2,8 @@
 #include <stdint.h>
 #include <stdlib.h>
 
-void ucb1(double *reward, uint32_t totalThresholds, uint8_t maxItems,
-          uint64_t totalRounds, uint64_t pricesPerRound) {
+void ucb1(double *reward, double *totalRoundGain, uint32_t totalThresholds,
+          uint8_t maxItems, uint64_t totalRounds, uint64_t pricesPerRound) {
   // how much money a threshold has made
   double *rewardSum = malloc(totalThresholds * sizeof(double));
   // how many times a threshold has been picked
@@ -18,7 +18,6 @@ void ucb1(double *reward, uint32_t totalThresholds, uint8_t maxItems,
   }
 
   double *roundGain = malloc(totalRounds * sizeof(double));
-  double *totalRoundGain = malloc(totalRounds * sizeof(double));
 
   /**
    * INFO: The ucb1 algorithm in short:
@@ -83,5 +82,4 @@ void ucb1(double *reward, uint32_t totalThresholds, uint8_t maxItems,
   free(timesChosen);
   free(avgReward);
   free(roundGain);
-  free(totalRoundGain);
 }
