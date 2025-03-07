@@ -4,7 +4,7 @@
 #include <stdlib.h>
 #include <time.h>
 
-void epsilonGreedy(double *data, uint32_t totalThresholds, uint8_t maxItems,
+void epsilonGreedy(double *reward, uint32_t totalThresholds, uint8_t maxItems,
                    uint64_t totalRounds, uint64_t pricesPerRound) {
   const gsl_rng_type *T;
   gsl_rng *r;
@@ -13,8 +13,6 @@ void epsilonGreedy(double *data, uint32_t totalThresholds, uint8_t maxItems,
   r = gsl_rng_alloc(T);
   gsl_rng_set(r, time(NULL));
 
-  // uniformly distributed thresholds in [0,1)
-  double *threshold = malloc(totalThresholds * sizeof(double));
   // how much money a threshold has made
   double *rewardSum = malloc(totalThresholds * sizeof(double));
   // how many times a threshold has been picked
@@ -23,14 +21,11 @@ void epsilonGreedy(double *data, uint32_t totalThresholds, uint8_t maxItems,
   double *avgReward = malloc(totalThresholds * sizeof(double));
 
   for (uint32_t th = 0; th < totalThresholds; th++) {
-    threshold[th] = (double)th / totalThresholds;
-    //+ 1/(double)(2*totalThreshold);
     rewardSum[th] = 0;
     timesChosen[th] = 0;
     avgReward[th] = 0;
   }
 
-  uint32_t heldItems = 0;
   uint64_t explore = 0;
   uint64_t exploit = 0;
   double *roundGain = malloc(totalRounds * sizeof(double));
@@ -76,20 +71,7 @@ void epsilonGreedy(double *data, uint32_t totalThresholds, uint8_t maxItems,
       exploit++;
     }
 
-    double gain = 0;
-    for (uint32_t n = 0; n < pricesPerRound; n++) {
-      if ((pricesPerRound - n == heldItems ||
-           data[pricesPerRound * t + n] >= threshold[chosenTh]) &&
-          heldItems > 0) {
-        gain += data[pricesPerRound * t + n];
-        heldItems--;
-      } else if (pricesPerRound - n - 1 != heldItems &&
-                 data[pricesPerRound * t + n] < threshold[chosenTh] &&
-                 heldItems < maxItems) {
-        gain -= data[pricesPerRound * t + n];
-        heldItems++;
-      }
-    }
+    double gain = reward[totalThresholds * t + chosenTh];
 
     rewardSum[chosenTh] += gain;
     roundGain[t] = gain;
@@ -106,7 +88,6 @@ void epsilonGreedy(double *data, uint32_t totalThresholds, uint8_t maxItems,
   }
 
   gsl_rng_free(r);
-  free(threshold);
   free(rewardSum);
   free(timesChosen);
   free(avgReward);

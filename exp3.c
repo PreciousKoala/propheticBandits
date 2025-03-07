@@ -4,7 +4,7 @@
 #include <stdlib.h>
 #include <time.h>
 
-void exp3(double *data, uint32_t totalThresholds, uint8_t maxItems,
+void exp3(double *reward, uint32_t totalThresholds, uint8_t maxItems,
           uint64_t totalRounds, uint64_t pricesPerRound) {
   const gsl_rng_type *T;
   gsl_rng *r;
@@ -13,8 +13,6 @@ void exp3(double *data, uint32_t totalThresholds, uint8_t maxItems,
   r = gsl_rng_alloc(T);
   gsl_rng_set(r, time(NULL));
 
-  // uniformly distributed thresholds in [0,1)
-  double *threshold = malloc(totalThresholds * sizeof(double));
   // how much money a threshold has made
   double *rewardSum = malloc(totalThresholds * sizeof(double));
   // how many times a threshold has been picked
@@ -23,14 +21,11 @@ void exp3(double *data, uint32_t totalThresholds, uint8_t maxItems,
   double *avgReward = malloc(totalThresholds * sizeof(double));
 
   for (uint32_t th = 0; th < totalThresholds; th++) {
-    threshold[th] = (double)th / totalThresholds;
-    //+ 1/(double)(2*totalThreshold);
     rewardSum[th] = 0;
     timesChosen[th] = 0;
     avgReward[th] = 0;
   }
 
-  uint32_t heldItems = 0;
   double *roundGain = malloc(totalRounds * sizeof(double));
   double *totalRoundGain = malloc(totalRounds * sizeof(double));
 
@@ -69,6 +64,17 @@ void exp3(double *data, uint32_t totalThresholds, uint8_t maxItems,
     thresholdWeight[th] = 1;
   }
 
+  double min = INFINITY;
+  double max = -INFINITY;
+  for (uint64_t i = 0; i < totalRounds * totalThresholds; i++) {
+    if (reward[i] < min) {
+      min = reward[i];
+    }
+    if (reward[i] > max) {
+      max = reward[i];
+    }
+  }
+
   for (uint64_t t = 0; t < totalRounds; t++) {
     // upper bound is variable for easier future changes
     uint64_t upperBound = t + 1;
@@ -99,20 +105,7 @@ void exp3(double *data, uint32_t totalThresholds, uint8_t maxItems,
       }
     }
 
-    double gain = 0;
-    for (uint32_t n = 0; n < pricesPerRound; n++) {
-      if ((pricesPerRound - n == heldItems ||
-           data[pricesPerRound * t + n] >= threshold[chosenTh]) &&
-          heldItems > 0) {
-        gain += data[pricesPerRound * t + n];
-        heldItems--;
-      } else if (pricesPerRound - n - 1 != heldItems &&
-                 data[pricesPerRound * t + n] < threshold[chosenTh] &&
-                 heldItems < maxItems) {
-        gain -= data[pricesPerRound * t + n];
-        heldItems++;
-      }
-    }
+    double gain = reward[totalThresholds * t + chosenTh];
 
     rewardSum[chosenTh] += gain;
     roundGain[t] = gain;
@@ -122,10 +115,10 @@ void exp3(double *data, uint32_t totalThresholds, uint8_t maxItems,
     }
 
     // weight only changes for the chosen threshold
+    double normalizedGain = (gain - min) / (max - min);
     thresholdWeight[chosenTh] =
         thresholdWeight[chosenTh] *
-        exp(2 * gamma * gain /
-            (pricesPerRound * thresholdProb * totalThresholds));
+        exp(gamma * normalizedGain / (thresholdProb * totalThresholds));
   }
 
   totalRoundGain[0] = roundGain[0];
@@ -136,7 +129,6 @@ void exp3(double *data, uint32_t totalThresholds, uint8_t maxItems,
 
   gsl_rng_free(r);
   free(thresholdWeight);
-  free(threshold);
   free(rewardSum);
   free(timesChosen);
   free(avgReward);

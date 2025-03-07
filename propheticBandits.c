@@ -17,6 +17,34 @@ void normalizePrices(double min, double max, double *data, uint64_t totalRounds,
   }
 }
 
+void calculateRewards(double *reward, double *data, uint64_t totalRounds,
+                      uint64_t pricesPerRound, uint32_t totalThresholds,
+                      uint32_t maxItems) {
+  uint32_t heldItems = 0;
+  for (uint32_t th = 0; th < totalThresholds; th++) {
+    double threshold = (double)th / totalThresholds;
+
+    for (uint64_t t = 0; t < totalRounds; t++) {
+      double gain = 0;
+
+      for (uint32_t n = 0; n < pricesPerRound; n++) {
+        if ((pricesPerRound - n == heldItems ||
+             data[pricesPerRound * t + n] >= threshold) &&
+            heldItems > 0) {
+          gain += data[pricesPerRound * t + n];
+          heldItems--;
+        } else if (pricesPerRound - n - 1 != heldItems &&
+                   data[pricesPerRound * t + n] < threshold &&
+                   heldItems < maxItems) {
+          gain -= data[pricesPerRound * t + n];
+          heldItems++;
+        }
+      }
+      reward[totalThresholds * t + th] = gain;
+    }
+  }
+}
+
 void printHelp() {
   printf("Usage:\n"
          "    propheticBandits [-eux] [-m <integer>] [-t <integer>] "
@@ -132,22 +160,33 @@ int main(int argc, char **argv) {
   printf("Normalizing prices to [0,1]...\n");
   normalizePrices(min, max, data, totalRounds, pricesPerRound);
 
-  double *optAlg = malloc(totalRounds * sizeof(double));
-  double *totalOpt = malloc(totalRounds * sizeof(double));
+  printf("Calculating rewards...\n");
+  double *reward = malloc(totalRounds * totalThresholds * sizeof(double));
+  calculateRewards(reward, data, totalRounds, pricesPerRound, totalThresholds,
+                   maxItems);
 
   printf("Calculating optimal result...\n");
-  findOpt(data, optAlg, maxItems, totalRounds, pricesPerRound);
-  findTotalOpt(optAlg, totalOpt, totalRounds);
+  double *optAlg = malloc(totalRounds * sizeof(double));
+  double *totalOpt = malloc(totalRounds * sizeof(double));
+  findOpt(data, optAlg, totalOpt, maxItems, totalRounds, pricesPerRound);
+
+  printf("Calculating best hand...\n");
+  double *bestHand = malloc(totalRounds * sizeof(double));
+  double *totalBestHand = malloc(totalRounds * sizeof(double));
+  findBestHand(reward, bestHand, totalBestHand, totalRounds, totalThresholds);
+
+  free(data);
 
   if (epsilonGreedyFlag) {
     printf("Calculating Epsilon-Greedy...\n");
-    epsilonGreedy(data, totalThresholds, maxItems, totalRounds, pricesPerRound);
+    epsilonGreedy(reward, totalThresholds, maxItems, totalRounds,
+                  pricesPerRound);
     // TODO: plot regret
   }
 
   if (ucb1Flag) {
     printf("Calculating UCB1...\n");
-    ucb1(data, totalThresholds, maxItems, totalRounds, pricesPerRound);
+    ucb1(reward, totalThresholds, maxItems, totalRounds, pricesPerRound);
   }
 
   if (exp3Flag) {
@@ -173,14 +212,19 @@ int main(int argc, char **argv) {
      *      -can easily revert back, and compare with eGreedy & ucb1
      *    cons:
      *      -less accurate
+     *
+     *
+     * It turns out that option 1 is significantly better for exp3
      */
 
     printf("Calculating EXP3...\n");
-    exp3(data, totalThresholds, maxItems, totalRounds, pricesPerRound);
+    exp3(reward, totalThresholds, maxItems, totalRounds, pricesPerRound);
   }
 
-  free(data);
+  free(reward);
   free(optAlg);
   free(totalOpt);
+  free(bestHand);
+  free(totalBestHand);
   return 0;
 }

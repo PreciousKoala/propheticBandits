@@ -2,10 +2,8 @@
 #include <stdint.h>
 #include <stdlib.h>
 
-void ucb1(double *data, uint32_t totalThresholds, uint8_t maxItems,
+void ucb1(double *reward, uint32_t totalThresholds, uint8_t maxItems,
           uint64_t totalRounds, uint64_t pricesPerRound) {
-  // uniformly distributed thresholds in [0,1)
-  double *threshold = malloc(totalThresholds * sizeof(double));
   // how much money a threshold has made
   double *rewardSum = malloc(totalThresholds * sizeof(double));
   // how many times a threshold has been picked
@@ -14,14 +12,11 @@ void ucb1(double *data, uint32_t totalThresholds, uint8_t maxItems,
   double *avgReward = malloc(totalThresholds * sizeof(double));
 
   for (uint32_t th = 0; th < totalThresholds; th++) {
-    threshold[th] = (double)th / totalThresholds;
-    //+ 1/(double)(2*totalThreshold);
     rewardSum[th] = 0;
     timesChosen[th] = 0;
     avgReward[th] = 0;
   }
 
-  uint32_t heldItems = 0;
   double *roundGain = malloc(totalRounds * sizeof(double));
   double *totalRoundGain = malloc(totalRounds * sizeof(double));
 
@@ -46,20 +41,7 @@ void ucb1(double *data, uint32_t totalThresholds, uint8_t maxItems,
 
   for (uint8_t t = 0; t < totalThresholds; t++) {
     chosenTh = t;
-    double gain = 0;
-    for (uint32_t n = 0; n < pricesPerRound; n++) {
-      if ((pricesPerRound - n == heldItems ||
-           data[pricesPerRound * t + n] >= threshold[chosenTh]) &&
-          heldItems > 0) {
-        gain += data[pricesPerRound * t + n];
-        heldItems--;
-      } else if (pricesPerRound - n - 1 != heldItems &&
-                 data[pricesPerRound * t + n] < threshold[chosenTh] &&
-                 heldItems < maxItems) {
-        gain -= data[pricesPerRound * t + n];
-        heldItems++;
-      }
-    }
+    double gain = reward[totalThresholds * t + chosenTh];
 
     rewardSum[chosenTh] += gain;
     roundGain[t] = gain;
@@ -83,20 +65,7 @@ void ucb1(double *data, uint32_t totalThresholds, uint8_t maxItems,
 
     free(upperConfBound);
 
-    double gain = 0;
-    for (uint32_t n = 0; n < pricesPerRound; n++) {
-      if ((pricesPerRound - n == heldItems ||
-           data[pricesPerRound * t + n] >= threshold[chosenTh]) &&
-          heldItems > 0) {
-        gain += data[pricesPerRound * t + n];
-        heldItems--;
-      } else if (pricesPerRound - n - 1 != heldItems &&
-                 data[pricesPerRound * t + n] < threshold[chosenTh] &&
-                 heldItems < maxItems) {
-        gain -= data[pricesPerRound * t + n];
-        heldItems++;
-      }
-    }
+    double gain = reward[totalThresholds * t + chosenTh];
 
     rewardSum[chosenTh] += gain;
     roundGain[t] = gain;
@@ -110,7 +79,6 @@ void ucb1(double *data, uint32_t totalThresholds, uint8_t maxItems,
     /* printf("%lf\n", totalRoundGain[t]); */
   }
 
-  free(threshold);
   free(rewardSum);
   free(timesChosen);
   free(avgReward);
