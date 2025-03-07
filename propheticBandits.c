@@ -45,84 +45,61 @@ void calculateRewards(double *reward, double *data, uint64_t totalRounds,
   }
 }
 
-void plotRegret(uint64_t totalRounds, double *totalOpt, double *totalBestHand,
-                double *eGreedyGain, double *ucb1Gain, double *exp3Gain,
-                uint8_t eGreedyFlag, uint8_t ucb1Flag, uint8_t exp3Flag) {
+void plotRegret(uint64_t totalRounds, double *opt, double *eGreedyGain,
+                double *ucb1Gain, double *exp3Gain, uint8_t eGreedyFlag,
+                uint8_t ucb1Flag, uint8_t exp3Flag) {
   FILE *gnuplot = popen("gnuplot -persistent", "w");
   if (!gnuplot) {
     exit(EXIT_FAILURE);
   }
-  fprintf(gnuplot, "set title 'Total Regret Plot'\n");
+  fprintf(gnuplot, "set title 'Regret Plot'\n");
   fprintf(gnuplot, "set xlabel 'Rounds'\n");
   fprintf(gnuplot, "set ylabel 'Regret'\n");
   fprintf(gnuplot, "set grid\n");
+  fprintf(gnuplot, "set key left top\n");
 
   fprintf(gnuplot, "plot ");
 
   if (eGreedyFlag) {
     fprintf(gnuplot, "'-' using 1:2 with lines lt rgb 'red' lw 2 title "
-                     "'eGreedy Opt Regret'");
-    fprintf(gnuplot, ", '-' using 1:2 with lines lt rgb 'dark-red' lw 2 title "
-                     "'eGreedy Best Hand Regret'");
+                     "'eGreedy Regret'");
   }
 
   if (ucb1Flag) {
     if (eGreedyFlag) {
       fprintf(gnuplot, ", ");
     }
-    fprintf(
-        gnuplot,
-        "'-' using 1:2 with lines lt rgb 'blue' lw 2 title 'UCB1 Opt Regret'");
-    fprintf(gnuplot, ", '-' using 1:2 with lines lt rgb 'dark-blue' lw 2 title "
-                     "'UCB1 Best Hand Regret'");
+    fprintf(gnuplot,
+            "'-' using 1:2 with lines lt rgb 'blue' lw 2 title 'UCB1 Regret'");
   }
 
   if (exp3Flag) {
     if (eGreedyFlag || ucb1Flag) {
       fprintf(gnuplot, ", ");
     }
-    fprintf(
-        gnuplot,
-        "'-' using 1:2 with lines lt rgb 'green' lw 2 title 'EXP3 Opt Regret'");
     fprintf(gnuplot,
-            ", '-' using 1:2 with lines lt rgb 'dark-green' lw 2 title 'EXP3 "
-            "Best Hand Regret'");
+            "'-' using 1:2 with lines lt rgb 'green' lw 2 title 'EXP3 Regret'");
   }
 
   fprintf(gnuplot, "\n");
 
   if (eGreedyFlag) {
     for (int t = 0; t < totalRounds; t++) {
-      fprintf(gnuplot, "%d %lf\n", t, totalOpt[t] - eGreedyGain[t]);
-    }
-    fprintf(gnuplot, "e\n");
-
-    for (int t = 0; t < totalRounds; t++) {
-      fprintf(gnuplot, "%d %lf\n", t, totalBestHand[t] - eGreedyGain[t]);
+      fprintf(gnuplot, "%d %lf\n", t, opt[t] - eGreedyGain[t]);
     }
     fprintf(gnuplot, "e\n");
   }
 
   if (ucb1Flag) {
     for (int t = 0; t < totalRounds; t++) {
-      fprintf(gnuplot, "%d %lf\n", t, totalOpt[t] - ucb1Gain[t]);
-    }
-    fprintf(gnuplot, "e\n");
-
-    for (int t = 0; t < totalRounds; t++) {
-      fprintf(gnuplot, "%d %lf\n", t, totalBestHand[t] - ucb1Gain[t]);
+      fprintf(gnuplot, "%d %lf\n", t, opt[t] - ucb1Gain[t]);
     }
     fprintf(gnuplot, "e\n");
   }
 
   if (exp3Flag) {
     for (int t = 0; t < totalRounds; t++) {
-      fprintf(gnuplot, "%d %lf\n", t, totalOpt[t] - exp3Gain[t]);
-    }
-    fprintf(gnuplot, "e\n");
-
-    for (int t = 0; t < totalRounds; t++) {
-      fprintf(gnuplot, "%d %lf\n", t, totalBestHand[t] - exp3Gain[t]);
+      fprintf(gnuplot, "%d %lf\n", t, opt[t] - exp3Gain[t]);
     }
     fprintf(gnuplot, "e\n");
   }
@@ -267,7 +244,6 @@ int main(int argc, char **argv) {
     printf("Calculating Epsilon-Greedy...\n");
     epsilonGreedy(reward, eGreedyGain, totalThresholds, maxItems, totalRounds,
                   pricesPerRound);
-    // TODO: plot regret
     // TODO: print useful details
   }
 
@@ -280,42 +256,20 @@ int main(int argc, char **argv) {
 
   double *exp3Gain = malloc(totalRounds * sizeof(double));
   if (exp3Flag) {
-    /* INFO: The exp3 algorithm requires the feedback to be in range [0,1].
-     * However, our feedback (reward after each round) can be >1.
-     *
-     * A few solutions:
-     *
-     * 1) calculate each reward for each arm and normalize prices according to
-     * the min and max reward of all the arms and rounds.
-     *    pros:
-     *      -accurate normalization (the entire range of 0,1 is reached)
-     *    cons:
-     *      -computational power needed is multiplied by the number of arms
-     *
-     * 2) divide all numbers in the data by the number of prices per round / 2,
-     * since each round has N prices and each price is in [0,1], the absolute
-     * best outcome is buying at 0 and selling at 1, therefore the feedback is
-     * at most N/2.
-     *    pros:
-     *      -much faster than option 1
-     *    cons:
-     *      -less accurate
-     *
-     *
-     * It turns out that option 1 is significantly better for exp3.
-     * You also don't need to normalize the entire data array, just the price
-     * that is used in calculating the new weight.
-     */
-
     printf("Calculating EXP3...\n");
     exp3(reward, exp3Gain, totalThresholds, maxItems, totalRounds,
          pricesPerRound);
   }
 
-  plotRegret(totalRounds, totalOpt, totalBestHand, eGreedyGain, ucb1Gain,
-             exp3Gain, eGreedyFlag, ucb1Flag, exp3Flag);
-
   free(reward);
+
+  printf("Plotting optimal regret...\n");
+  plotRegret(totalRounds, totalOpt, eGreedyGain, ucb1Gain, exp3Gain,
+             eGreedyFlag, ucb1Flag, exp3Flag);
+  printf("Plotting best hand regret...\n");
+  plotRegret(totalRounds, totalBestHand, eGreedyGain, ucb1Gain, exp3Gain,
+             eGreedyFlag, ucb1Flag, exp3Flag);
+
   free(optAlg);
   free(totalOpt);
   free(bestHand);
