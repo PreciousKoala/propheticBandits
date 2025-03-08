@@ -1,9 +1,11 @@
 #include <math.h>
 #include <stdint.h>
+#include <stdio.h>
 #include <stdlib.h>
 
-void ucb1(double *reward, double *totalRoundGain, uint32_t totalThresholds,
-          uint8_t maxItems, uint64_t totalRounds, uint64_t pricesPerRound) {
+void ucb1(double *reward, double *totalRoundGain, double *totalOpt,
+          double *totalBestHand, uint32_t totalThresholds, uint8_t maxItems,
+          uint64_t totalRounds, uint64_t pricesPerRound) {
   // how much money a threshold has made
   double *rewardSum = malloc(totalThresholds * sizeof(double));
   // how many times a threshold has been picked
@@ -37,6 +39,7 @@ void ucb1(double *reward, double *totalRoundGain, uint32_t totalThresholds,
    */
 
   uint32_t chosenTh;
+  double *upperConfBound = malloc(totalThresholds * sizeof(double));
 
   for (uint8_t t = 0; t < totalThresholds; t++) {
     chosenTh = t;
@@ -49,7 +52,6 @@ void ucb1(double *reward, double *totalRoundGain, uint32_t totalThresholds,
   }
 
   for (uint64_t t = totalThresholds; t < totalRounds; t++) {
-    double *upperConfBound = malloc(totalThresholds * sizeof(double));
     double max = -INFINITY;
     chosenTh = 0;
 
@@ -61,8 +63,6 @@ void ucb1(double *reward, double *totalRoundGain, uint32_t totalThresholds,
         chosenTh = th;
       }
     }
-
-    free(upperConfBound);
 
     double gain = reward[totalThresholds * t + chosenTh];
 
@@ -78,6 +78,31 @@ void ucb1(double *reward, double *totalRoundGain, uint32_t totalThresholds,
     /* printf("%lf\n", totalRoundGain[t]); */
   }
 
+  printf("\n");
+  printf("--------------------------------------UCB1---------------------------"
+         "-----------\n");
+  printf("Threshold\tTotal Reward\tTimes Chosen\tAverage Reward\tUCB\n");
+  for (int32_t th = 0; th < totalThresholds; th++) {
+    printf("%-7.2lf\t\t%-10.2lf\t%-12lu\t%-8.6lf\t%-.5lf\n",
+           (double)th / totalThresholds, rewardSum[th], timesChosen[th],
+           avgReward[th], upperConfBound[th]);
+  }
+
+  printf("---------------------------------------------------------------------"
+         "-----------\n");
+  printf("Total Gain: %lf\n", totalRoundGain[totalRounds - 1]);
+  printf("OPT: %lf (buying & selling at local extrema)\n",
+         totalOpt[totalRounds - 1]);
+  printf("Regret: %lf\n",
+         totalOpt[totalRounds - 1] - totalRoundGain[totalRounds - 1]);
+  printf("OPT: %lf (picking best hand every round)\n",
+         totalBestHand[totalRounds - 1]);
+  printf("Regret: %lf\n",
+         totalBestHand[totalRounds - 1] - totalRoundGain[totalRounds - 1]);
+  printf("---------------------------------------------------------------------"
+         "-----------\n\n");
+
+  free(upperConfBound);
   free(rewardSum);
   free(timesChosen);
   free(avgReward);

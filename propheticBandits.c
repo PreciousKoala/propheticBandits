@@ -242,23 +242,23 @@ int main(int argc, char **argv) {
   double *eGreedyGain = malloc(totalRounds * sizeof(double));
   if (eGreedyFlag) {
     printf("Calculating Epsilon-Greedy...\n");
-    epsilonGreedy(reward, eGreedyGain, totalThresholds, maxItems, totalRounds,
-                  pricesPerRound);
+    epsilonGreedy(reward, eGreedyGain, totalOpt, totalBestHand, totalThresholds,
+                  maxItems, totalRounds, pricesPerRound);
     // TODO: print useful details
   }
 
   double *ucb1Gain = malloc(totalRounds * sizeof(double));
   if (ucb1Flag) {
     printf("Calculating UCB1...\n");
-    ucb1(reward, ucb1Gain, totalThresholds, maxItems, totalRounds,
-         pricesPerRound);
+    ucb1(reward, ucb1Gain, totalOpt, totalBestHand, totalThresholds, maxItems,
+         totalRounds, pricesPerRound);
   }
 
   double *exp3Gain = malloc(totalRounds * sizeof(double));
   if (exp3Flag) {
     printf("Calculating EXP3...\n");
-    exp3(reward, exp3Gain, totalThresholds, maxItems, totalRounds,
-         pricesPerRound);
+    exp3(reward, exp3Gain, totalOpt, totalBestHand, totalThresholds, maxItems,
+         totalRounds, pricesPerRound);
   }
 
   free(reward);

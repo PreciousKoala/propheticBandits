@@ -4,9 +4,10 @@
 #include <stdlib.h>
 #include <time.h>
 
-void epsilonGreedy(double *reward, double *totalRoundGain,
-                   uint32_t totalThresholds, uint8_t maxItems,
-                   uint64_t totalRounds, uint64_t pricesPerRound) {
+void epsilonGreedy(double *reward, double *totalRoundGain, double *totalOpt,
+                   double *totalBestHand, uint32_t totalThresholds,
+                   uint8_t maxItems, uint64_t totalRounds,
+                   uint64_t pricesPerRound) {
   const gsl_rng_type *T;
   gsl_rng *r;
   gsl_rng_env_setup();
@@ -86,6 +87,34 @@ void epsilonGreedy(double *reward, double *totalRoundGain,
     totalRoundGain[t] = totalRoundGain[t - 1] + roundGain[t];
     /* printf("%lf\n", totalRoundGain[t]); */
   }
+
+  printf("\n");
+  printf("---------------------------------EPSILON-GREEDY----------------------"
+         "-----------\n");
+  printf("Threshold\tTotal Reward\tTimes Chosen\tAverage Reward\n");
+  for (int32_t th = 0; th < totalThresholds; th++) {
+    printf("%-7.2lf\t\t%-10.2lf\t%-12lu\t%-.6lf\n",
+           (double)th / totalThresholds, rewardSum[th], timesChosen[th],
+           avgReward[th]);
+  }
+
+  printf("---------------------------------------------------------------------"
+         "-----------\n");
+  printf("Final Exploration Chance: %lf%%\n",
+         100 * cbrt(totalThresholds * log(totalRounds) / (totalRounds)));
+  printf("Explored: %lu\n", explore);
+  printf("Exploited: %lu\n", exploit);
+  printf("Total Gain: %lf\n", totalRoundGain[totalRounds - 1]);
+  printf("OPT: %lf (buying & selling at local extrema)\n",
+         totalOpt[totalRounds - 1]);
+  printf("Regret: %lf\n",
+         totalOpt[totalRounds - 1] - totalRoundGain[totalRounds - 1]);
+  printf("OPT: %lf (picking best hand every round)\n",
+         totalBestHand[totalRounds - 1]);
+  printf("Regret: %lf\n",
+         totalBestHand[totalRounds - 1] - totalRoundGain[totalRounds - 1]);
+  printf("---------------------------------------------------------------------"
+         "-----------\n\n");
 
   gsl_rng_free(r);
   free(rewardSum);

@@ -4,8 +4,9 @@
 #include <stdlib.h>
 #include <time.h>
 
-void exp3(double *reward, double *totalRoundGain, uint32_t totalThresholds,
-          uint8_t maxItems, uint64_t totalRounds, uint64_t pricesPerRound) {
+void exp3(double *reward, double *totalRoundGain, double *totalOpt,
+          double *totalBestHand, uint32_t totalThresholds, uint8_t maxItems,
+          uint64_t totalRounds, uint64_t pricesPerRound) {
   const gsl_rng_type *T;
   gsl_rng *r;
   gsl_rng_env_setup();
@@ -74,11 +75,12 @@ void exp3(double *reward, double *totalRoundGain, uint32_t totalThresholds,
     }
   }
 
+  double gamma;
   for (uint64_t t = 0; t < totalRounds; t++) {
     // upper bound is variable for easier future changes
     uint64_t upperBound = t + 1;
-    double gamma = sqrt((totalThresholds * log(totalThresholds)) /
-                        ((M_E - 1) * upperBound));
+    gamma = sqrt((totalThresholds * log(totalThresholds)) /
+                 ((M_E - 1) * upperBound));
     if (gamma > 1) {
       gamma = 1;
     }
@@ -125,6 +127,31 @@ void exp3(double *reward, double *totalRoundGain, uint32_t totalThresholds,
     totalRoundGain[t] = totalRoundGain[t - 1] + roundGain[t];
     /* printf("%lf\n", totalRoundGain[t]); */
   }
+
+  printf("\n");
+  printf("--------------------------------------EXP3---------------------------"
+         "-----------\n");
+  printf("Threshold\tTotal Reward\tTimes Chosen\tAverage Reward\n");
+  for (int32_t th = 0; th < totalThresholds; th++) {
+    printf("%-7.2lf\t\t%-10.2lf\t%-12lu\t%-.6lf\n",
+           (double)th / totalThresholds, rewardSum[th], timesChosen[th],
+           avgReward[th]);
+  }
+
+  printf("---------------------------------------------------------------------"
+         "-----------\n");
+  printf("Final Gamma (Exploration Chance): %lf%%\n", 100*gamma);
+  printf("Total Gain: %lf\n", totalRoundGain[totalRounds - 1]);
+  printf("OPT: %lf (buying & selling at local extrema)\n",
+         totalOpt[totalRounds - 1]);
+  printf("Regret: %lf\n",
+         totalOpt[totalRounds - 1] - totalRoundGain[totalRounds - 1]);
+  printf("OPT: %lf (picking best hand every round)\n",
+         totalBestHand[totalRounds - 1]);
+  printf("Regret: %lf\n",
+         totalBestHand[totalRounds - 1] - totalRoundGain[totalRounds - 1]);
+  printf("---------------------------------------------------------------------"
+         "-----------\n\n");
 
   gsl_rng_free(r);
   free(thresholdWeight);
