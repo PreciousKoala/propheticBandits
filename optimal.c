@@ -4,7 +4,7 @@
 
 void findOpt(double *data, double *optAlg, double *totalOpt, uint8_t maxItems,
              uint64_t totalRounds, uint64_t pricesPerRound) {
-  // TODO: do the same but for maxItems>1 (what the fuck)
+  // TODO: do the same but for maxItems>1
 
   /*
    * INFO: Based on "Trading Prophets" section 3 lemma 1 by Jose Correa, Andres

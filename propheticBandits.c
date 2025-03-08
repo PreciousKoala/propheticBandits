@@ -244,7 +244,6 @@ int main(int argc, char **argv) {
     printf("Calculating Epsilon-Greedy...\n");
     epsilonGreedy(reward, eGreedyGain, totalOpt, totalBestHand, totalThresholds,
                   maxItems, totalRounds, pricesPerRound);
-    // TODO: print useful details
   }
 
   double *ucb1Gain = malloc(totalRounds * sizeof(double));
