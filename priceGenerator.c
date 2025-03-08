@@ -23,7 +23,9 @@ void printHelp() {
          "    -e <mean>            Generate prices from the Exponential "
          "Distribution.\n"
          "    -a <phi>             Generate prices from an Autoregressive "
-         "Model of order 1.\n");
+         "Model of order 1.\n"
+         "    -b <prob>            Generate prices from the Bernoulli "
+         "Distribution (generates one with probability p).\n");
 }
 
 int main(int argc, char *argv[]) {
@@ -36,6 +38,7 @@ int main(int argc, char *argv[]) {
   uint8_t gaussianFlag = 0;
   uint8_t exponentialFlag = 0;
   uint8_t autoregressiveFlag = 0;
+  uint8_t bernoulliFlag = 0;
 
   char distLetter = 'u';
 
@@ -43,6 +46,7 @@ int main(int argc, char *argv[]) {
   double gaussianMean = 1;
   double exponentialMean = 1;
   double autoregressivePhi = 1;
+  double bernoulliProb = 0.5;
 
   uint64_t totalRounds = 1000;
   uint64_t pricesPerRound = 10;
@@ -53,7 +57,7 @@ int main(int argc, char *argv[]) {
 
   // TODO: add sigma and low arguments for -g and -u
   // maybe also a second order autoregressive model
-  while ((opt = getopt(argc, argv, "hu:g:e:a:t:n:")) != -1) {
+  while ((opt = getopt(argc, argv, "hu:g:e:a:b:t:n:")) != -1) {
     switch (opt) {
     case 'h':
       printHelp();
@@ -63,6 +67,7 @@ int main(int argc, char *argv[]) {
       gaussianFlag = 0;
       exponentialFlag = 0;
       autoregressiveFlag = 0;
+      bernoulliFlag = 0;
       distLetter = 'u';
 
       uniformHigh = atof(optarg);
@@ -72,6 +77,7 @@ int main(int argc, char *argv[]) {
       gaussianFlag = 1;
       exponentialFlag = 0;
       autoregressiveFlag = 0;
+      bernoulliFlag = 0;
       distLetter = 'g';
 
       gaussianMean = atof(optarg);
@@ -81,6 +87,7 @@ int main(int argc, char *argv[]) {
       gaussianFlag = 0;
       exponentialFlag = 1;
       autoregressiveFlag = 0;
+      bernoulliFlag = 0;
       distLetter = 'e';
 
       exponentialMean = atof(optarg);
@@ -90,9 +97,20 @@ int main(int argc, char *argv[]) {
       gaussianFlag = 0;
       exponentialFlag = 0;
       autoregressiveFlag = 1;
+      bernoulliFlag = 0;
       distLetter = 'a';
 
       autoregressivePhi = atof(optarg);
+      break;
+    case 'b':
+      uniformFlag = 0;
+      gaussianFlag = 0;
+      exponentialFlag = 0;
+      autoregressiveFlag = 0;
+      bernoulliFlag = 1;
+      distLetter = 'b';
+
+      bernoulliProb = atof(optarg);
       break;
     case 't':
       totalRounds = atoll(optarg);
@@ -102,7 +120,7 @@ int main(int argc, char *argv[]) {
       break;
     case '?':
       if (optopt == 'u' || optopt == 'g' || optopt == 'e' || optopt == 'a' ||
-          optopt == 't' || optopt == 'n')
+          optopt == 'b' || optopt == 't' || optopt == 'n')
         fprintf(stderr, "Option -%c requires an argument.\n", optopt);
       break;
     default:
@@ -167,12 +185,21 @@ int main(int argc, char *argv[]) {
     }
   }
 
+  if (bernoulliFlag) {
+    for (uint64_t i = 0; i < totalRounds * pricesPerRound; i++) {
+      double e = (double)gsl_ran_bernoulli(r, bernoulliProb);
+      /* printf("%lf\n", e); */
+      fwrite(&e, sizeof(e), 1, file);
+    }
+  }
+
   /*  INFO: For quick testing if the distributions are correct:
    *
    *  Uncomment the printf lines above.
    *  Run the command:
    *
-   *  make && ./priceGenerator [flags] | gnuplot -p -e "plot '<cat' with lines"
+   *  make && ./priceGenerator [flags] | gnuplot -p -e "plot '<cat' frequency
+   * with lines"
    *
    */
 
