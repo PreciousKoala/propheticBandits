@@ -59,7 +59,9 @@ void exp3(double *reward, double *totalRoundGain, double *totalOpt,
    *
    */
 
-  double *thresholdWeight = malloc(totalThresholds * sizeof(double));
+  // threshold weights must be long double to prevent errors with very large
+  // datasets probably doesn't work on windows but oh well
+  long double *thresholdWeight = malloc(totalThresholds * sizeof(long double));
   for (uint32_t th = 0; th < totalThresholds; th++) {
     thresholdWeight[th] = 1;
   }
@@ -75,28 +77,28 @@ void exp3(double *reward, double *totalRoundGain, double *totalOpt,
     }
   }
 
-  double gamma;
+  long double weightSum = 0;
   for (uint64_t t = 0; t < totalRounds; t++) {
     // upper bound is variable for easier future changes
     uint64_t upperBound = t + 1;
-    gamma = sqrt((totalThresholds * log(totalThresholds)) /
-                 ((M_E - 1) * upperBound));
+    long double gamma = sqrt((totalThresholds * log(totalThresholds)) /
+                             ((M_E - 1) * upperBound));
     if (gamma > 1) {
       gamma = 1;
     }
 
-    double totalWeight = 0;
+    weightSum = 0;
     for (uint32_t th = 0; th < totalThresholds; th++) {
-      totalWeight += thresholdWeight[th];
+      weightSum += thresholdWeight[th];
     }
 
     // pick threshold according to probabilities (no need to calculate them all)
     // initialize chosenTh as the last threshold incase something goes wrong
     uint32_t chosenTh = totalThresholds - 1;
     double randomNumber = gsl_rng_uniform(r);
-    double thresholdProb = 0;
+    long double thresholdProb = 0;
     for (uint32_t th = 0; th < totalThresholds; th++) {
-      thresholdProb = (1 - gamma) * (thresholdWeight[th] / totalWeight) +
+      thresholdProb = (1 - gamma) * (thresholdWeight[th] / weightSum) +
                       gamma / totalThresholds;
       if (randomNumber < thresholdProb) {
         chosenTh = th;
@@ -117,9 +119,9 @@ void exp3(double *reward, double *totalRoundGain, double *totalOpt,
 
     // weight only changes for the chosen threshold
     double normalizedGain = (gain - min) / (max - min);
-    thresholdWeight[chosenTh] =
-        thresholdWeight[chosenTh] *
-        exp(gamma * normalizedGain / (thresholdProb * totalThresholds));
+    double estimatedReward = normalizedGain / thresholdProb;
+    thresholdWeight[chosenTh] *=
+        expl(gamma * estimatedReward / totalThresholds);
   }
 
   totalRoundGain[0] = roundGain[0];
@@ -131,16 +133,27 @@ void exp3(double *reward, double *totalRoundGain, double *totalOpt,
   printf("\n");
   printf("--------------------------------------EXP3---------------------------"
          "-----------\n");
-  printf("Threshold\tTotal Reward\tTimes Chosen\tAverage Reward\n");
+  printf("Threshold\tTotal Reward\tTimes Chosen\tAverage "
+         "Reward\tFinal Weight\tProbability\n");
+
+  long double gamma = sqrt((totalThresholds * log(totalThresholds)) /
+                           ((M_E - 1) * totalRounds));
+
   for (int32_t th = 0; th < totalThresholds; th++) {
-    printf("%-7.2lf\t\t%-10.2lf\t%-12lu\t%-.6lf\n",
-           (double)th / totalThresholds, rewardSum[th], timesChosen[th],
-           avgReward[th]);
+    double threshold = (double)th / totalThresholds;
+
+    long double thresholdProb =
+        (1 - gamma) * (thresholdWeight[th] / weightSum) +
+        gamma / totalThresholds;
+
+    printf("%-7.2lf\t\t%-10.2lf\t%-12lu\t%-8.6lf\t%-6LE\t%-.6Lf%%\n", threshold,
+           rewardSum[th], timesChosen[th], avgReward[th], thresholdWeight[th],
+           100 * thresholdProb);
   }
 
   printf("---------------------------------------------------------------------"
          "-----------\n");
-  printf("Final Gamma (Exploration Chance): %lf%%\n", 100*gamma);
+  printf("Final Gamma (Exploration Chance): %Lf%%\n", 100 * gamma);
   printf("Total Gain: %lf\n", totalRoundGain[totalRounds - 1]);
   printf("OPT: %lf (buying & selling at local extrema)\n",
          totalOpt[totalRounds - 1]);
