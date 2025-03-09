@@ -131,8 +131,8 @@ void exp3(double *reward, double *totalRoundGain, double *totalOpt,
   }
 
   printf("\n");
-  printf("--------------------------------------EXP3---------------------------"
-         "-----------\n");
+  printf("---------------------------------------------EXP3--------------------------"
+         "-----------------\n");
   printf("Threshold\tTotal Reward\tTimes Chosen\tAverage "
          "Reward\tFinal Weight\tProbability\n");
 
@@ -152,7 +152,7 @@ void exp3(double *reward, double *totalRoundGain, double *totalOpt,
   }
 
   printf("---------------------------------------------------------------------"
-         "-----------\n");
+         "-----------------------\n");
   printf("Final Gamma (Exploration Chance): %Lf%%\n", 100 * gamma);
   printf("Total Gain: %lf\n", totalRoundGain[totalRounds - 1]);
   printf("OPT: %lf (buying & selling at local extrema)\n",
@@ -164,7 +164,7 @@ void exp3(double *reward, double *totalRoundGain, double *totalOpt,
   printf("Regret: %lf\n",
          totalBestHand[totalRounds - 1] - totalRoundGain[totalRounds - 1]);
   printf("---------------------------------------------------------------------"
-         "-----------\n\n");
+         "-----------------------\n\n");
 
   gsl_rng_free(r);
   free(thresholdWeight);

@@ -216,7 +216,7 @@ int main(int argc, char **argv) {
       return 1;
     }
 
-    printf("Importing file...\n");
+    /* printf("Importing file...\n"); */
 
     // first 2 values are 64bit integers
     fread(&totalRounds, sizeof(uint64_t), 1, file);
@@ -243,10 +243,10 @@ int main(int argc, char **argv) {
   }
 
   // Normalize prices to [0, 1]
-  printf("Normalizing prices to [0,1]...\n");
+  /* printf("Normalizing prices to [0,1]...\n"); */
   normalizePrices(min, max, data, totalRounds, pricesPerRound);
 
-  printf("Calculating rewards...\n");
+  /* printf("Calculating rewards...\n"); */
   double *reward = malloc(totalRounds * totalThresholds * sizeof(double));
   calculateRewards(reward, data, totalRounds, pricesPerRound, totalThresholds,
                    maxItems);

@@ -105,18 +105,24 @@ void ucb2(double *reward, double *totalRoundGain, double *totalOpt,
   }
 
   printf("\n");
-  printf("--------------------------------------UCB2---------------------------"
-         "-----------\n");
-  printf("Threshold\tTotal Reward\tTimes Chosen\tAverage Reward\tUCB       "
-         "\tEpochs Chosen\n");
+  printf("--------------------------------------------------------------UCB2---"
+         "-------------------------------------------------\n");
+  printf("Threshold\tTotal Reward\tTimes Chosen\tAverage Reward\tUCB\t"
+         "\tEpochs Chosen\tAverage Epoch Duration\n");
   for (int32_t th = 0; th < totalThresholds; th++) {
-    printf("%-7.2lf\t\t%-10.2lf\t%-12lu\t%-8.6lf\t%-5.5lf\t%-u\n",
+    double epochDuration;
+    if (!epochsChosen[th]) {
+      epochDuration = 0;
+    } else {
+      epochDuration = (double)timesChosen[th] / epochsChosen[th];
+    }
+    printf("%-7.2lf\t\t%-10.2lf\t%-12lu\t%-8.6lf\t%-5.5lf\t\t%-13u\t%-.5lf\n",
            (double)th / totalThresholds, rewardSum[th], timesChosen[th],
-           avgReward[th], upperConfBound[th], epochsChosen[th]);
+           avgReward[th], upperConfBound[th], epochsChosen[th], epochDuration);
   }
 
   printf("---------------------------------------------------------------------"
-         "-----------\n");
+         "-------------------------------------------------\n");
   printf("Total Gain: %lf\n", totalRoundGain[totalRounds - 1]);
   printf("OPT: %lf (buying & selling at local extrema)\n",
          totalOpt[totalRounds - 1]);
@@ -127,7 +133,7 @@ void ucb2(double *reward, double *totalRoundGain, double *totalOpt,
   printf("Regret: %lf\n",
          totalBestHand[totalRounds - 1] - totalRoundGain[totalRounds - 1]);
   printf("---------------------------------------------------------------------"
-         "-----------\n\n");
+         "-------------------------------------------------\n\n");
 
   free(upperConfBound);
   free(epochsChosen);
