@@ -7,6 +7,7 @@
 
 #include "epsilonGreedy.c"
 #include "exp3.c"
+#include "greedy.c"
 #include "optimal.c"
 #include "ucb1.c"
 #include "ucb2.c"
@@ -47,13 +48,13 @@ void calculateRewards(double *reward, double *data, uint64_t totalRounds,
 }
 
 // FIXME: make this faster
-void plotRegret(uint64_t totalRounds, double *opt, double *eGreedyGain,
-                double *ucb1Gain, double *ucb2Gain, double *exp3Gain,
-                uint8_t eGreedyFlag, uint8_t ucb1Flag, uint8_t ucb2Flag,
-                uint8_t exp3Flag) {
+void plotRegret(uint64_t totalRounds, double *opt, double *greedyGain,
+                double *eGreedyGain, double *ucb1Gain, double *ucb2Gain,
+                double *exp3Gain, uint8_t greedyFlag, uint8_t eGreedyFlag,
+                uint8_t ucb1Flag, uint8_t ucb2Flag, uint8_t exp3Flag) {
   FILE *gnuplot = popen("gnuplot -persistent", "w");
   if (!gnuplot) {
-    exit(EXIT_FAILURE);
+    exit(1);
   }
   fprintf(gnuplot, "set title 'Regret Plot'\n");
   fprintf(gnuplot, "set xlabel 'Rounds'\n");
@@ -63,13 +64,21 @@ void plotRegret(uint64_t totalRounds, double *opt, double *eGreedyGain,
 
   fprintf(gnuplot, "plot ");
 
+  if (greedyFlag) {
+    fprintf(gnuplot, "'-' using 1:2 with lines lt rgb 'orange' lw 2 title "
+                     "'Greedy Regret'");
+  }
+
   if (eGreedyFlag) {
+    if (greedyFlag) {
+      fprintf(gnuplot, ", ");
+    }
     fprintf(gnuplot, "'-' using 1:2 with lines lt rgb 'red' lw 2 title "
                      "'eGreedy Regret'");
   }
 
   if (ucb1Flag) {
-    if (eGreedyFlag) {
+    if (greedyFlag || eGreedyFlag) {
       fprintf(gnuplot, ", ");
     }
     fprintf(gnuplot,
@@ -77,7 +86,7 @@ void plotRegret(uint64_t totalRounds, double *opt, double *eGreedyGain,
   }
 
   if (ucb2Flag) {
-    if (eGreedyFlag || ucb1Flag) {
+    if (greedyFlag || eGreedyFlag || ucb1Flag) {
       fprintf(gnuplot, ", ");
     }
     fprintf(
@@ -86,7 +95,7 @@ void plotRegret(uint64_t totalRounds, double *opt, double *eGreedyGain,
   }
 
   if (exp3Flag) {
-    if (eGreedyFlag || ucb1Flag || ucb2Flag) {
+    if (greedyFlag || eGreedyFlag || ucb1Flag || ucb2Flag) {
       fprintf(gnuplot, ", ");
     }
     fprintf(gnuplot,
@@ -94,6 +103,13 @@ void plotRegret(uint64_t totalRounds, double *opt, double *eGreedyGain,
   }
 
   fprintf(gnuplot, "\n");
+
+  if (greedyFlag) {
+    for (int t = 0; t < totalRounds; t++) {
+      fprintf(gnuplot, "%d %lf\n", t, opt[t] - greedyGain[t]);
+    }
+    fprintf(gnuplot, "e\n");
+  }
 
   if (eGreedyFlag) {
     for (int t = 0; t < totalRounds; t++) {
@@ -128,7 +144,7 @@ void plotRegret(uint64_t totalRounds, double *opt, double *eGreedyGain,
 
 void printHelp() {
   printf("Usage:\n"
-         "    propheticBandits [-euUx] [-m <integer>] [-t <integer>] "
+         "    propheticBandits [-ngeuUx] [-m <integer>] [-t <integer>] "
          "<file>\n"
          "    propheticBandits -h      # Display this help screen.\n\n"
          "Options:\n"
@@ -137,6 +153,7 @@ void printHelp() {
          "(default = 1).\n"
          /* "    -k      Set the program to be able to keep items at " */
          /*        "the end of a round.\n" */
+         "    -g              Run the Greedy algorithm.\n"
          "    -e              Run the Epsilon Greedy algorithm.\n"
          "    -u              Run the UCB1 algorithm.\n"
          "    -U              Run the UCB2 algorithm.\n"
@@ -152,6 +169,7 @@ int main(int argc, char **argv) {
   uint32_t totalThresholds = 10;
   uint32_t maxItems = 1;
   // uint8_t keepItemsFlag = 0;
+  uint8_t greedyFlag = 0;
   uint8_t eGreedyFlag = 0;
   uint8_t ucb1Flag = 0;
   uint8_t ucb2Flag = 0;
@@ -161,7 +179,7 @@ int main(int argc, char **argv) {
 
   opterr = 0;
 
-  while ((opt = getopt(argc, argv, ":hm:euUxt:")) != -1) {
+  while ((opt = getopt(argc, argv, ":hm:geuUxt:")) != -1) {
     switch (opt) {
     case 'h':
       printHelp();
@@ -175,6 +193,9 @@ int main(int argc, char **argv) {
     /* case 'k': */
     /*   keepItemsFlag = 1; */
     /*   break; */
+    case 'g':
+      greedyFlag = 1;
+      break;
     case 'e':
       eGreedyFlag = 1;
       break;
@@ -216,7 +237,7 @@ int main(int argc, char **argv) {
       return 1;
     }
 
-    /* printf("Importing file...\n"); */
+    printf("Importing file...\n");
 
     // first 2 values are 64bit integers
     fread(&totalRounds, sizeof(uint64_t), 1, file);
@@ -243,10 +264,10 @@ int main(int argc, char **argv) {
   }
 
   // Normalize prices to [0, 1]
-  /* printf("Normalizing prices to [0,1]...\n"); */
+  printf("Normalizing prices to [0,1]...\n");
   normalizePrices(min, max, data, totalRounds, pricesPerRound);
 
-  /* printf("Calculating rewards...\n"); */
+  printf("Calculating rewards...\n");
   double *reward = malloc(totalRounds * totalThresholds * sizeof(double));
   calculateRewards(reward, data, totalRounds, pricesPerRound, totalThresholds,
                    maxItems);
@@ -262,6 +283,13 @@ int main(int argc, char **argv) {
   findBestHand(reward, bestHand, totalBestHand, totalRounds, totalThresholds);
 
   free(data);
+
+  double *greedyGain = malloc(totalRounds * sizeof(double));
+  if (greedyFlag) {
+    printf("Calculating Greedy...\n");
+    greedy(reward, greedyGain, totalOpt, totalBestHand, totalThresholds,
+           maxItems, totalRounds, pricesPerRound);
+  }
 
   double *eGreedyGain = malloc(totalRounds * sizeof(double));
   if (eGreedyFlag) {
@@ -296,15 +324,19 @@ int main(int argc, char **argv) {
   free(bestHand);
 
   printf("Plotting best hand regret...\n");
-  plotRegret(totalRounds, totalBestHand, eGreedyGain, ucb1Gain, ucb2Gain,
-             exp3Gain, eGreedyFlag, ucb1Flag, ucb2Flag, exp3Flag);
+  plotRegret(totalRounds, totalBestHand, greedyGain, eGreedyGain, ucb1Gain,
+             ucb2Gain, exp3Gain, greedyFlag, eGreedyFlag, ucb1Flag, ucb2Flag,
+             exp3Flag);
 
-  printf("Plotting optimal regret...\n");
-  plotRegret(totalRounds, totalOpt, eGreedyGain, ucb1Gain, ucb2Gain, exp3Gain,
-             eGreedyFlag, ucb1Flag, ucb2Flag, exp3Flag);
+  /* printf("Plotting optimal regret...\n"); */
+  /* plotRegret(totalRounds, totalOpt, greedyGain, eGreedyGain, ucb1Gain,
+   * ucb2Gain, */
+  /*            exp3Gain, greedyFlag, eGreedyFlag, ucb1Flag, ucb2Flag,
+   * exp3Flag); */
 
   free(totalOpt);
   free(totalBestHand);
+  free(greedyGain);
   free(eGreedyGain);
   free(ucb1Gain);
   free(ucb2Gain);

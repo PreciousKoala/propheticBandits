@@ -66,14 +66,14 @@ void exp3(double *reward, double *totalRoundGain, double *totalOpt,
     thresholdWeight[th] = 1;
   }
 
-  double min = INFINITY;
-  double max = -INFINITY;
+  double rewardMin = INFINITY;
+  double rewardMax = -INFINITY;
   for (uint64_t i = 0; i < totalRounds * totalThresholds; i++) {
-    if (reward[i] < min) {
-      min = reward[i];
+    if (reward[i] < rewardMin) {
+      rewardMin = reward[i];
     }
-    if (reward[i] > max) {
-      max = reward[i];
+    if (reward[i] > rewardMax) {
+      rewardMax = reward[i];
     }
   }
 
@@ -118,7 +118,7 @@ void exp3(double *reward, double *totalRoundGain, double *totalOpt,
     }
 
     // weight only changes for the chosen threshold
-    double normalizedGain = (gain - min) / (max - min);
+    double normalizedGain = gain; //(gain - min) / (max - min);
     double estimatedReward = normalizedGain / thresholdProb;
     thresholdWeight[chosenTh] *=
         expl(gamma * estimatedReward / totalThresholds);
@@ -131,8 +131,8 @@ void exp3(double *reward, double *totalRoundGain, double *totalOpt,
   }
 
   printf("\n");
-  printf("---------------------------------------------EXP3--------------------------"
-         "-----------------\n");
+  printf("---------------------------------------------EXP3--------------------"
+         "-----------------------\n");
   printf("Threshold\tTotal Reward\tTimes Chosen\tAverage "
          "Reward\tFinal Weight\tProbability\n");
 

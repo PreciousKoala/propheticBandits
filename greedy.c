@@ -3,7 +3,7 @@
 #include <stdio.h>
 #include <stdlib.h>
 
-void ucb1(double *reward, double *totalRoundGain, double *totalOpt,
+void greedy(double *reward, double *totalRoundGain, double *totalOpt,
           double *totalBestHand, uint32_t totalThresholds, uint8_t maxItems,
           uint64_t totalRounds, uint64_t pricesPerRound) {
   // how much money a threshold has made
@@ -22,35 +22,19 @@ void ucb1(double *reward, double *totalRoundGain, double *totalOpt,
   double *roundGain = malloc(totalRounds * sizeof(double));
 
   /**
-   * INFO: The ucb1 algorithm in short:
+   * INFO: The greedy algorithm in short:
    *
    * --------------------------------------------------
    * try each arm once
    * for each round t
-   *   pick arm which maximizes UCB_t
+   *   pick the arm with the highest average reward
    * --------------------------------------------------
    *
    * in this program, arm = threshold
    *
-   * UCB_t_a  = m_t_a + r_t_a
-   * m_t_a = average reward of arm a in round t
-   * r_t_a = sqrt(2 * log(t) / n_t_a)
-   * n_t_a = number of rounds before t where arm a was chosen
    */
 
-  double rewardMin = INFINITY;
-  double rewardMax = -INFINITY;
-  for (uint64_t i = 0; i < totalRounds * totalThresholds; i++) {
-    if (reward[i] < rewardMin) {
-      rewardMin = reward[i];
-    }
-    if (reward[i] > rewardMax) {
-      rewardMax = reward[i];
-    }
-  }
-
   uint32_t chosenTh;
-  double *upperConfBound = malloc(totalThresholds * sizeof(double));
 
   for (uint8_t t = 0; t < totalThresholds; t++) {
     chosenTh = t;
@@ -67,10 +51,8 @@ void ucb1(double *reward, double *totalRoundGain, double *totalOpt,
     chosenTh = 0;
 
     for (uint32_t th = 0; th < totalThresholds; th++) {
-      upperConfBound[th] =
-          sqrt(2 * log(t + 1) / timesChosen[th]) + avgReward[th];
-      if (upperConfBound[th] > max) {
-        max = upperConfBound[th];
+      if (avgReward[th] > max) {
+        max = avgReward[th];
         chosenTh = th;
       }
     }
@@ -90,13 +72,13 @@ void ucb1(double *reward, double *totalRoundGain, double *totalOpt,
   }
 
   printf("\n");
-  printf("--------------------------------------UCB1---------------------------"
+  printf("-------------------------------------Greedy--------------------------"
          "-----------\n");
-  printf("Threshold\tTotal Reward\tTimes Chosen\tAverage Reward\tUCB\n");
+  printf("Threshold\tTotal Reward\tTimes Chosen\tAverage Reward\n");
   for (int32_t th = 0; th < totalThresholds; th++) {
-    printf("%-7.2lf\t\t%-10.2lf\t%-12lu\t%-8.6lf\t%-.5lf\n",
+    printf("%-7.2lf\t\t%-10.2lf\t%-12lu\t%-.6lf\n",
            (double)th / totalThresholds, rewardSum[th], timesChosen[th],
-           avgReward[th], upperConfBound[th]);
+           avgReward[th]);
   }
 
   printf("---------------------------------------------------------------------"
@@ -113,7 +95,6 @@ void ucb1(double *reward, double *totalRoundGain, double *totalOpt,
   printf("---------------------------------------------------------------------"
          "-----------\n\n");
 
-  free(upperConfBound);
   free(rewardSum);
   free(timesChosen);
   free(avgReward);
