@@ -1,3 +1,4 @@
+#include "util.c"
 #include <gsl/gsl_rng.h>
 #include <math.h>
 #include <stdint.h>
@@ -5,30 +6,8 @@
 #include <time.h>
 
 void exp3(double *reward, double *totalRoundGain, double *totalOpt,
-          double *totalBestHand, uint32_t totalThresholds, uint8_t maxItems,
+          double *totalBestHand, uint32_t totalThresholds, uint32_t maxItems,
           uint64_t totalRounds, uint64_t pricesPerRound) {
-  const gsl_rng_type *T;
-  gsl_rng *r;
-  gsl_rng_env_setup();
-  T = gsl_rng_default;
-  r = gsl_rng_alloc(T);
-  gsl_rng_set(r, time(NULL));
-
-  // how much money a threshold has made
-  double *rewardSum = malloc(totalThresholds * sizeof(double));
-  // how many times a threshold has been picked
-  uint64_t *timesChosen = malloc(totalThresholds * sizeof(uint64_t));
-  // how much money on average a threshold has made
-  double *avgReward = malloc(totalThresholds * sizeof(double));
-
-  for (uint32_t th = 0; th < totalThresholds; th++) {
-    rewardSum[th] = 0;
-    timesChosen[th] = 0;
-    avgReward[th] = 0;
-  }
-
-  double *roundGain = malloc(totalRounds * sizeof(double));
-
   /**
    * INFO: The exp3 algorithm in short:
    *
@@ -58,6 +37,18 @@ void exp3(double *reward, double *totalRoundGain, double *totalOpt,
    * the number of rounds, but for now we will use g = t instead.
    *
    */
+
+  const gsl_rng_type *T;
+  gsl_rng *r;
+  gsl_rng_env_setup();
+  T = gsl_rng_default;
+  r = gsl_rng_alloc(T);
+  gsl_rng_set(r, time(NULL));
+
+  Threshold *thres = malloc(totalThresholds * sizeof(Threshold));
+  initThreshold(thres, totalThresholds);
+
+  double *roundGain = malloc(totalRounds * sizeof(double));
 
   // threshold weights must be long double to prevent errors with very large
   // datasets probably doesn't work on windows but oh well
@@ -108,17 +99,12 @@ void exp3(double *reward, double *totalRoundGain, double *totalOpt,
       }
     }
 
-    double gain = reward[totalThresholds * t + chosenTh];
-
-    rewardSum[chosenTh] += gain;
-    roundGain[t] = gain;
-    timesChosen[chosenTh]++;
-    if (timesChosen[chosenTh] != 0) {
-      avgReward[chosenTh] = rewardSum[chosenTh] / timesChosen[chosenTh];
-    }
+    runRound(thres, chosenTh, totalThresholds, reward, roundGain, t);
 
     // weight only changes for the chosen threshold
-    double normalizedGain = gain; //(gain - min) / (max - min);
+    double normalizedGain =
+        (reward[totalThresholds * t + chosenTh] - rewardMin) /
+        (rewardMax - rewardMin);
     double estimatedReward = normalizedGain / thresholdProb;
     thresholdWeight[chosenTh] *=
         expl(gamma * estimatedReward / totalThresholds);
@@ -140,15 +126,13 @@ void exp3(double *reward, double *totalRoundGain, double *totalOpt,
                            ((M_E - 1) * totalRounds));
 
   for (int32_t th = 0; th < totalThresholds; th++) {
-    double threshold = (double)th / totalThresholds;
-
     long double thresholdProb =
         (1 - gamma) * (thresholdWeight[th] / weightSum) +
         gamma / totalThresholds;
 
-    printf("%-7.2lf\t\t%-10.2lf\t%-12lu\t%-8.6lf\t%-6LE\t%-.6Lf%%\n", threshold,
-           rewardSum[th], timesChosen[th], avgReward[th], thresholdWeight[th],
-           100 * thresholdProb);
+    printf("%-7.2lf\t\t%-10.2lf\t%-12lu\t%-8.6lf\t%-6LE\t%-.6Lf%%\n",
+           thres[th].threshold, thres[th].rewardSum, thres[th].timesChosen,
+           thres[th].avgReward, thresholdWeight[th], 100 * thresholdProb);
   }
 
   printf("---------------------------------------------------------------------"
@@ -168,8 +152,6 @@ void exp3(double *reward, double *totalRoundGain, double *totalOpt,
 
   gsl_rng_free(r);
   free(thresholdWeight);
-  free(rewardSum);
-  free(timesChosen);
-  free(avgReward);
+  free(thres);
   free(roundGain);
 }

@@ -1,26 +1,12 @@
+#include "util.c"
 #include <math.h>
 #include <stdint.h>
 #include <stdio.h>
 #include <stdlib.h>
 
 void ucb2(double *reward, double *totalRoundGain, double *totalOpt,
-          double *totalBestHand, uint32_t totalThresholds, uint8_t maxItems,
+          double *totalBestHand, uint32_t totalThresholds, uint32_t maxItems,
           uint64_t totalRounds, uint64_t pricesPerRound) {
-  // how much money a threshold has made
-  double *rewardSum = malloc(totalThresholds * sizeof(double));
-  // how many times a threshold has been picked
-  uint64_t *timesChosen = malloc(totalThresholds * sizeof(uint64_t));
-  // how much money on average a threshold has made
-  double *avgReward = malloc(totalThresholds * sizeof(double));
-
-  for (uint32_t th = 0; th < totalThresholds; th++) {
-    rewardSum[th] = 0;
-    timesChosen[th] = 0;
-    avgReward[th] = 0;
-  }
-
-  double *roundGain = malloc(totalRounds * sizeof(double));
-
   /**
    * INFO: The ucb2 algorithm in short:
    *
@@ -43,6 +29,11 @@ void ucb2(double *reward, double *totalRoundGain, double *totalOpt,
    * tau(r) = ceil((1 + a)^r)
    */
 
+  Threshold *thres = malloc(totalThresholds * sizeof(Threshold));
+  initThreshold(thres, totalThresholds);
+
+  double *roundGain = malloc(totalRounds * sizeof(double));
+
   double rewardMin = INFINITY;
   double rewardMax = -INFINITY;
   for (uint64_t i = 0; i < totalRounds * totalThresholds; i++) {
@@ -61,13 +52,7 @@ void ucb2(double *reward, double *totalRoundGain, double *totalOpt,
 
   for (uint8_t t = 0; t < totalThresholds; t++) {
     epochsChosen[t] = 0;
-    chosenTh = t;
-    double gain = reward[totalThresholds * t + chosenTh];
-
-    rewardSum[chosenTh] += gain;
-    roundGain[t] = gain;
-    timesChosen[chosenTh]++;
-    avgReward[chosenTh] = rewardSum[chosenTh] / timesChosen[chosenTh];
+    runRound(thres, chosenTh, totalThresholds, reward, roundGain, t);
   }
 
   uint64_t t = totalThresholds;
@@ -81,7 +66,7 @@ void ucb2(double *reward, double *totalRoundGain, double *totalOpt,
       uint64_t tau = (uint64_t)ceil(pow((1 + alpha), epochsChosen[th]));
       upperConfBound[th] =
           sqrt((1 + alpha) * log(M_E * (t + 1) / tau) / (2 * tau)) +
-          avgReward[th];
+          (thres[th].avgReward - rewardMin) / (rewardMax - rewardMin);
       if (upperConfBound[th] > max) {
         max = upperConfBound[th];
         chosenTh = th;
@@ -92,18 +77,9 @@ void ucb2(double *reward, double *totalRoundGain, double *totalOpt,
     uint64_t repeat =
         (uint64_t)ceil(pow((1 + alpha), epochsChosen[chosenTh] + 1)) -
         (uint64_t)ceil(pow((1 + alpha), epochsChosen[chosenTh]));
-    /* printf("%lu %lf %lf\n", repeat, */
-    /*        ceil(pow((1 + alpha), epochsChosen[chosenTh] + 1)), */
-    /*        ceil(pow((1 + alpha), epochsChosen[chosenTh]))); */
 
     while (t < totalRounds && repeat > 0) {
-      double gain = reward[totalThresholds * t + chosenTh];
-
-      rewardSum[chosenTh] += gain;
-      roundGain[t] = gain;
-      timesChosen[chosenTh]++;
-      avgReward[chosenTh] = rewardSum[chosenTh] / timesChosen[chosenTh];
-
+      runRound(thres, chosenTh, totalThresholds, reward, roundGain, t);
       t++;
       repeat--;
     }
@@ -125,11 +101,12 @@ void ucb2(double *reward, double *totalRoundGain, double *totalOpt,
     if (!epochsChosen[th]) {
       epochDuration = 0;
     } else {
-      epochDuration = (double)timesChosen[th] / epochsChosen[th];
+      epochDuration = (double)thres[th].timesChosen / epochsChosen[th];
     }
     printf("%-7.2lf\t\t%-10.2lf\t%-12lu\t%-8.6lf\t%-10.5lf\t%-13u\t%-.5lf\n",
-           (double)th / totalThresholds, rewardSum[th], timesChosen[th],
-           avgReward[th], upperConfBound[th], epochsChosen[th], epochDuration);
+           thres[th].threshold, thres[th].rewardSum, thres[th].timesChosen,
+           thres[th].avgReward, upperConfBound[th], epochsChosen[th],
+           epochDuration);
   }
 
   printf("---------------------------------------------------------------------"
@@ -148,8 +125,6 @@ void ucb2(double *reward, double *totalRoundGain, double *totalOpt,
 
   free(upperConfBound);
   free(epochsChosen);
-  free(rewardSum);
-  free(timesChosen);
-  free(avgReward);
+  free(thres);
   free(roundGain);
 }
