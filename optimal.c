@@ -33,8 +33,8 @@ void findOpt(double *data, double *optAlg, double *totalOpt, uint8_t maxItems,
 }
 */
 
-void findBestHand(double *reward, double *bestHand, double *totalBestHand,
-                  uint64_t totalRounds, uint32_t totalThresholds) {
+void findBestHand(double *reward, double *totalOpt, uint64_t totalRounds,
+                  uint32_t totalThresholds) {
   Threshold *thres = malloc(totalThresholds * sizeof(Threshold));
   initThreshold(thres, totalThresholds);
 
@@ -48,13 +48,7 @@ void findBestHand(double *reward, double *bestHand, double *totalBestHand,
         chosenTh = th;
       }
     }
-    runRound(thres, chosenTh, totalThresholds, reward, bestHand, t);
-  }
-
-  totalBestHand[0] = bestHand[0];
-  for (uint64_t t = 1; t < totalRounds; t++) {
-    totalBestHand[t] = totalBestHand[t - 1] + bestHand[t];
-    /* printf("%lf\n", totalBestHand[t]); */
+    runRound(thres, chosenTh, totalThresholds, reward, totalOpt, t);
   }
 
   printf("\n");
@@ -68,8 +62,7 @@ void findBestHand(double *reward, double *bestHand, double *totalBestHand,
 
   printf("---------------------------------------------------------------------"
          "-----------\n");
-  printf("OPT: %lf (picking best hand every round)\n",
-         totalBestHand[totalRounds - 1]);
+  printf("OPT: %lf\n", totalOpt[totalRounds - 1]);
   printf("---------------------------------------------------------------------"
          "-----------\n\n");
 

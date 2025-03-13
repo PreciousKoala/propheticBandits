@@ -5,9 +5,9 @@
 #include <stdlib.h>
 #include <time.h>
 
-void exp3(double *reward, double *totalRoundGain, double *totalOpt,
-          double *totalBestHand, uint32_t totalThresholds, uint32_t maxItems,
-          uint64_t totalRounds, uint64_t pricesPerRound) {
+void exp3(double *reward, double *totalGain, double *totalOpt,
+          uint32_t totalThresholds, uint32_t maxItems, uint64_t totalRounds,
+          uint64_t pricesPerRound) {
   /**
    * INFO: The exp3 algorithm in short:
    *
@@ -48,7 +48,7 @@ void exp3(double *reward, double *totalRoundGain, double *totalOpt,
   Threshold *thres = malloc(totalThresholds * sizeof(Threshold));
   initThreshold(thres, totalThresholds);
 
-  double *roundGain = malloc(totalRounds * sizeof(double));
+  totalGain[0] = 0;
 
   // threshold weights must be long double to prevent errors with very large
   // datasets probably doesn't work on windows but oh well
@@ -99,7 +99,7 @@ void exp3(double *reward, double *totalRoundGain, double *totalOpt,
       }
     }
 
-    runRound(thres, chosenTh, totalThresholds, reward, roundGain, t);
+    runRound(thres, chosenTh, totalThresholds, reward, totalGain, t);
 
     // weight only changes for the chosen threshold
     double normalizedGain =
@@ -108,12 +108,6 @@ void exp3(double *reward, double *totalRoundGain, double *totalOpt,
     double estimatedReward = normalizedGain / thresholdProb;
     thresholdWeight[chosenTh] *=
         expl(gamma * estimatedReward / totalThresholds);
-  }
-
-  totalRoundGain[0] = roundGain[0];
-  for (uint64_t t = 1; t < totalRounds; t++) {
-    totalRoundGain[t] = totalRoundGain[t - 1] + roundGain[t];
-    /* printf("%lf\n", totalRoundGain[t]); */
   }
 
   printf("\n");
@@ -138,20 +132,19 @@ void exp3(double *reward, double *totalRoundGain, double *totalOpt,
   printf("---------------------------------------------------------------------"
          "-----------------------\n");
   printf("Final Gamma (Exploration Chance): %Lf%%\n", 100 * gamma);
-  printf("Total Gain: %lf\n", totalRoundGain[totalRounds - 1]);
-  printf("OPT: %lf (buying & selling at local extrema)\n",
-         totalOpt[totalRounds - 1]);
-  printf("Regret: %lf\n",
-         totalOpt[totalRounds - 1] - totalRoundGain[totalRounds - 1]);
-  printf("OPT: %lf (picking best hand every round)\n",
-         totalBestHand[totalRounds - 1]);
-  printf("Regret: %lf\n",
-         totalBestHand[totalRounds - 1] - totalRoundGain[totalRounds - 1]);
+  printf("Total Gain: %lf\n", totalGain[totalRounds - 1]);
+  printf("Total OPT: %lf\n", totalOpt[totalRounds - 1]);
+  printf("Total Regret: %lf\n",
+         totalOpt[totalRounds - 1] - totalGain[totalRounds - 1]);
+  printf("Average Gain: %lf\n", totalGain[totalRounds - 1] / totalRounds);
+  printf("Average OPT: %lf\n", totalOpt[totalRounds - 1] / totalRounds);
+  printf("Average Regret: %lf\n",
+         (totalOpt[totalRounds - 1] - totalGain[totalRounds - 1]) /
+             totalRounds);
   printf("---------------------------------------------------------------------"
          "-----------------------\n\n");
 
   gsl_rng_free(r);
   free(thresholdWeight);
   free(thres);
-  free(roundGain);
 }

@@ -1,12 +1,12 @@
-#include "util.c"
 #include <gsl/gsl_rng.h>
 #include <math.h>
 #include <time.h>
 
-void epsilonGreedy(double *reward, double *totalRoundGain, double *totalOpt,
-                   double *totalBestHand, uint32_t totalThresholds,
-                   uint32_t maxItems, uint64_t totalRounds,
-                   uint64_t pricesPerRound) {
+#include "util.c"
+
+void epsilonGreedy(double *reward, double *totalGain, double *totalOpt,
+                   uint32_t totalThresholds, uint32_t maxItems,
+                   uint64_t totalRounds, uint64_t pricesPerRound) {
   /**
    * INFO: The epsilon greedy algorithm in short:
    *
@@ -38,7 +38,8 @@ void epsilonGreedy(double *reward, double *totalRoundGain, double *totalOpt,
 
   uint64_t explore = 0;
   uint64_t exploit = 0;
-  double *roundGain = malloc(totalRounds * sizeof(double));
+
+  totalGain[0] = 0;
 
   for (uint64_t t = 0; t < totalRounds; t++) {
     double exploreProb = cbrt(totalThresholds * log(t + 1) / (t + 1));
@@ -62,12 +63,7 @@ void epsilonGreedy(double *reward, double *totalRoundGain, double *totalOpt,
       exploit++;
     }
 
-    runRound(thres, chosenTh, totalThresholds, reward, roundGain, t);
-  }
-
-  totalRoundGain[0] = roundGain[0];
-  for (uint64_t t = 1; t < totalRounds; t++) {
-    totalRoundGain[t] = totalRoundGain[t - 1] + roundGain[t];
+    runRound(thres, chosenTh, totalThresholds, reward, totalGain, t);
   }
 
   printf("\n");
@@ -85,19 +81,18 @@ void epsilonGreedy(double *reward, double *totalRoundGain, double *totalOpt,
          100 * cbrt(totalThresholds * log(totalRounds) / (totalRounds)));
   printf("Explored: %lu\n", explore);
   printf("Exploited: %lu\n", exploit);
-  printf("Total Gain: %lf\n", totalRoundGain[totalRounds - 1]);
-  printf("OPT: %lf (buying & selling at local extrema)\n",
-         totalOpt[totalRounds - 1]);
-  printf("Regret: %lf\n",
-         totalOpt[totalRounds - 1] - totalRoundGain[totalRounds - 1]);
-  printf("OPT: %lf (picking best hand every round)\n",
-         totalBestHand[totalRounds - 1]);
-  printf("Regret: %lf\n",
-         totalBestHand[totalRounds - 1] - totalRoundGain[totalRounds - 1]);
+  printf("Total Gain: %lf\n", totalGain[totalRounds - 1]);
+  printf("Total OPT: %lf\n", totalOpt[totalRounds - 1]);
+  printf("Total Regret: %lf\n",
+         totalOpt[totalRounds - 1] - totalGain[totalRounds - 1]);
+  printf("Average Gain: %lf\n", totalGain[totalRounds - 1] / totalRounds);
+  printf("Average OPT: %lf\n", totalOpt[totalRounds - 1] / totalRounds);
+  printf("Average Regret: %lf\n",
+         (totalOpt[totalRounds - 1] - totalGain[totalRounds - 1]) /
+             totalRounds);
   printf("---------------------------------------------------------------------"
          "-----------\n\n");
 
   gsl_rng_free(r);
   free(thres);
-  free(roundGain);
 }

@@ -16,7 +16,7 @@
 
 void printHelp() {
   printf("Usage:\n"
-         "    propheticBandits [-ngeuUx] [-m <integer>] [-t <integer>] "
+         "    propheticBandits [-geuUx] [-m <integer>] [-t <integer>] "
          "<file>\n"
          "    propheticBandits -h      # Display this help screen.\n\n"
          "Options:\n"
@@ -146,54 +146,52 @@ int main(int argc, char **argv) {
 
   /* printf("Calculating optimal result...\n"); */
   /* double *optAlg = malloc(totalRounds * sizeof(double)); */
-  double *totalOpt = malloc(totalRounds * sizeof(double));
+  /* double *totalOpt = malloc(totalRounds * sizeof(double)); */
   /* findOpt(data, optAlg, totalOpt, maxItems, totalRounds, pricesPerRound); */
 
   printf("Calculating best hand...\n");
-  double *bestHand = malloc(totalRounds * sizeof(double));
   double *totalBestHand = malloc(totalRounds * sizeof(double));
-  findBestHand(reward, bestHand, totalBestHand, totalRounds, totalThresholds);
+  findBestHand(reward, totalBestHand, totalRounds, totalThresholds);
 
   free(data);
 
   double *greedyGain = malloc(totalRounds * sizeof(double));
   if (greedyFlag) {
     printf("Calculating Greedy...\n");
-    greedy(reward, greedyGain, totalOpt, totalBestHand, totalThresholds,
-           maxItems, totalRounds, pricesPerRound);
+    greedy(reward, greedyGain, totalBestHand, totalThresholds, maxItems,
+           totalRounds, pricesPerRound);
   }
 
   double *eGreedyGain = malloc(totalRounds * sizeof(double));
   if (eGreedyFlag) {
     printf("Calculating Epsilon-Greedy...\n");
-    epsilonGreedy(reward, eGreedyGain, totalOpt, totalBestHand, totalThresholds,
-                  maxItems, totalRounds, pricesPerRound);
+    epsilonGreedy(reward, eGreedyGain, totalBestHand, totalThresholds, maxItems,
+                  totalRounds, pricesPerRound);
   }
 
   double *ucb1Gain = malloc(totalRounds * sizeof(double));
   if (ucb1Flag) {
     printf("Calculating UCB1...\n");
-    ucb1(reward, ucb1Gain, totalOpt, totalBestHand, totalThresholds, maxItems,
+    ucb1(reward, ucb1Gain, totalBestHand, totalThresholds, maxItems,
          totalRounds, pricesPerRound);
   }
 
   double *ucb2Gain = malloc(totalRounds * sizeof(double));
   if (ucb2Flag) {
     printf("Calculating UCB2...\n");
-    ucb2(reward, ucb2Gain, totalOpt, totalBestHand, totalThresholds, maxItems,
+    ucb2(reward, ucb2Gain, totalBestHand, totalThresholds, maxItems,
          totalRounds, pricesPerRound);
   }
 
   double *exp3Gain = malloc(totalRounds * sizeof(double));
   if (exp3Flag) {
     printf("Calculating EXP3...\n");
-    exp3(reward, exp3Gain, totalOpt, totalBestHand, totalThresholds, maxItems,
+    exp3(reward, exp3Gain, totalBestHand, totalThresholds, maxItems,
          totalRounds, pricesPerRound);
   }
 
   free(reward);
   /* free(optAlg); */
-  free(bestHand);
 
   printf("Plotting best hand regret...\n");
   plotRegret(totalRounds, totalBestHand, greedyGain, eGreedyGain, ucb1Gain,
@@ -206,7 +204,6 @@ int main(int argc, char **argv) {
   /*            exp3Gain, greedyFlag, eGreedyFlag, ucb1Flag, ucb2Flag,
    * exp3Flag); */
 
-  free(totalOpt);
   free(totalBestHand);
   free(greedyGain);
   free(eGreedyGain);

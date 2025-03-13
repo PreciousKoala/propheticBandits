@@ -25,14 +25,18 @@ void initThreshold(Threshold *thres, uint32_t totalThresholds) {
 }
 
 void runRound(Threshold *thres, uint32_t th, uint32_t totalThresholds,
-              double *reward, double *roundGain, uint64_t round) {
+              double *reward, double *totalGain, uint64_t round) {
   double gain = reward[totalThresholds * round + th];
 
   thres[th].rewardSum += gain;
-  roundGain[round] = gain;
   thres[th].timesChosen++;
   if (thres[th].timesChosen != 0) {
     thres[th].avgReward = thres[th].rewardSum / thres[th].timesChosen;
+  }
+  if (round == 0) {
+    totalGain[round] = gain;
+  } else {
+    totalGain[round] = totalGain[round - 1] + gain;
   }
 }
 
