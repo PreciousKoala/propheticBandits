@@ -75,11 +75,16 @@ void calculateRewards(double *reward, double *data, uint64_t totalRounds,
   }
 }
 
-// FIXME: make this faster
 void plotRegret(uint64_t totalRounds, double *opt, double *greedyGain,
                 double *eGreedyGain, double *ucb1Gain, double *ucb2Gain,
                 double *exp3Gain, uint8_t greedyFlag, uint8_t eGreedyFlag,
                 uint8_t ucb1Flag, uint8_t ucb2Flag, uint8_t exp3Flag) {
+  uint32_t step = 1;
+  // bigger step if the dataset is bigger, makes plot way faster
+  if (totalRounds > 10000) {
+    step = totalRounds / 10000;
+  }
+
   FILE *gnuplot = popen("gnuplot -persistent", "w");
   if (!gnuplot) {
     exit(1);
@@ -94,78 +99,69 @@ void plotRegret(uint64_t totalRounds, double *opt, double *greedyGain,
 
   if (greedyFlag) {
     fprintf(gnuplot, "'-' using 1:2 with lines lt rgb 'orange' lw 2 title "
-                     "'Greedy Regret'");
+                     "'Greedy Regret', ");
   }
 
   if (eGreedyFlag) {
-    if (greedyFlag) {
-      fprintf(gnuplot, ", ");
-    }
     fprintf(gnuplot, "'-' using 1:2 with lines lt rgb 'red' lw 2 title "
-                     "'eGreedy Regret'");
+                     "'eGreedy Regret', ");
   }
 
   if (ucb1Flag) {
-    if (greedyFlag || eGreedyFlag) {
-      fprintf(gnuplot, ", ");
-    }
-    fprintf(gnuplot,
-            "'-' using 1:2 with lines lt rgb 'blue' lw 2 title 'UCB1 Regret'");
+    fprintf(
+        gnuplot,
+        "'-' using 1:2 with lines lt rgb 'blue' lw 2 title 'UCB1 Regret', ");
   }
 
   if (ucb2Flag) {
-    if (greedyFlag || eGreedyFlag || ucb1Flag) {
-      fprintf(gnuplot, ", ");
-    }
     fprintf(
         gnuplot,
-        "'-' using 1:2 with lines lt rgb 'purple' lw 2 title 'UCB2 Regret'");
+        "'-' using 1:2 with lines lt rgb 'purple' lw 2 title 'UCB2 Regret', ");
   }
 
   if (exp3Flag) {
-    if (greedyFlag || eGreedyFlag || ucb1Flag || ucb2Flag) {
-      fprintf(gnuplot, ", ");
-    }
-    fprintf(gnuplot,
-            "'-' using 1:2 with lines lt rgb 'green' lw 2 title 'EXP3 Regret'");
+    fprintf(
+        gnuplot,
+        "'-' using 1:2 with lines lt rgb 'green' lw 2 title 'EXP3 Regret', ");
   }
 
   fprintf(gnuplot, "\n");
 
   if (greedyFlag) {
-    for (int t = 0; t < totalRounds; t++) {
+    for (int t = 0; t < totalRounds; t += step) {
       fprintf(gnuplot, "%d %lf\n", t, (opt[t] - greedyGain[t]) / (t + 1));
     }
     fprintf(gnuplot, "e\n");
   }
 
   if (eGreedyFlag) {
-    for (int t = 0; t < totalRounds; t++) {
+    for (int t = 0; t < totalRounds; t += step) {
       fprintf(gnuplot, "%d %lf\n", t, (opt[t] - eGreedyGain[t]) / (t + 1));
     }
     fprintf(gnuplot, "e\n");
   }
 
   if (ucb1Flag) {
-    for (int t = 0; t < totalRounds; t++) {
+    for (int t = 0; t < totalRounds; t += step) {
       fprintf(gnuplot, "%d %lf\n", t, (opt[t] - ucb1Gain[t]) / (t + 1));
     }
     fprintf(gnuplot, "e\n");
   }
 
   if (ucb2Flag) {
-    for (int t = 0; t < totalRounds; t++) {
+    for (int t = 0; t < totalRounds; t += step) {
       fprintf(gnuplot, "%d %lf\n", t, (opt[t] - ucb2Gain[t]) / (t + 1));
     }
     fprintf(gnuplot, "e\n");
   }
 
   if (exp3Flag) {
-    for (int t = 0; t < totalRounds; t++) {
+    for (int t = 0; t < totalRounds; t += step) {
       fprintf(gnuplot, "%d %lf\n", t, (opt[t] - exp3Gain[t]) / (t + 1));
     }
     fprintf(gnuplot, "e\n");
   }
+
   fflush(gnuplot);
   pclose(gnuplot);
 }
