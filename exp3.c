@@ -1,9 +1,10 @@
-#include "util.c"
 #include <gsl/gsl_rng.h>
 #include <math.h>
 #include <stdint.h>
 #include <stdlib.h>
 #include <time.h>
+
+#include "util.c"
 
 void exp3(double *reward, double *totalGain, double *totalOpt,
           uint32_t totalThresholds, uint32_t maxItems, uint64_t totalRounds,

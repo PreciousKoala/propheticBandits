@@ -1,16 +1,17 @@
-#include "util.c"
 #include <math.h>
 #include <stdint.h>
 #include <stdio.h>
 
-/*
-void findOpt(double *data, double *optAlg, double *totalOpt, uint8_t maxItems,
+#include "util.c"
+
+void findOpt(double *data, double *totalOpt, uint8_t maxItems,
              uint64_t totalRounds, uint64_t pricesPerRound) {
   for (uint64_t t = 0; t < totalRounds; t++) {
     uint8_t localMin = data[pricesPerRound * t] <= data[pricesPerRound * t + 1];
-    uint8_t localMax;
+    uint8_t localMax = (data[pricesPerRound * (t + 1) - 1] >=
+                        data[pricesPerRound * (t + 1) - 2]);
 
-    optAlg[t] = -data[pricesPerRound * t] * localMin;
+    totalOpt[t] = -data[pricesPerRound * t] * localMin;
 
     for (uint64_t n = 1; n < pricesPerRound - 1; n++) {
       localMax =
@@ -19,19 +20,25 @@ void findOpt(double *data, double *optAlg, double *totalOpt, uint8_t maxItems,
       localMin =
           data[pricesPerRound * t + n] <= data[pricesPerRound * t + n + 1];
 
-      optAlg[t] += data[pricesPerRound * t + n] * localMax -
-                   data[pricesPerRound * t + n] * localMin;
+      totalOpt[t] += data[pricesPerRound * t + n] * localMax -
+                     data[pricesPerRound * t + n] * localMin;
     }
-    localMax = (data[pricesPerRound * (t + 1) - 1] >=
-                data[pricesPerRound * (t + 1) - 2]);
-    optAlg[t] += data[pricesPerRound * (t + 1) - 1] * localMax;
+
+    totalOpt[t] += data[pricesPerRound * (t + 1) - 1] * localMax;
+
+    if (t != 0) {
+      totalOpt[t] += totalOpt[t - 1];
+    }
   }
-  totalOpt[0] = optAlg[0];
-  for (uint64_t t = 1; t < totalRounds; t++) {
-    totalOpt[t] = totalOpt[t - 1] + optAlg[t];
-  }
+
+  printf("\n");
+  printf("---------------------------------LOCAL-EXTREMA-----------------------"
+         "-----------\n");
+  printf("Total OPT: %lf\n", totalOpt[totalRounds - 1]);
+  printf("Average OPT: %lf\n", totalOpt[totalRounds - 1] / totalRounds);
+  printf("---------------------------------------------------------------------"
+         "-----------\n\n");
 }
-*/
 
 void findBestHand(double *reward, double *totalOpt, uint64_t totalRounds,
                   uint32_t totalThresholds) {
@@ -63,6 +70,7 @@ void findBestHand(double *reward, double *totalOpt, uint64_t totalRounds,
   printf("---------------------------------------------------------------------"
          "-----------\n");
   printf("OPT: %lf\n", totalOpt[totalRounds - 1]);
+  printf("Average OPT: %lf\n", totalOpt[totalRounds - 1] / totalRounds);
   printf("---------------------------------------------------------------------"
          "-----------\n\n");
 

@@ -1,8 +1,9 @@
-#include "util.c"
 #include <math.h>
 #include <stdint.h>
 #include <stdio.h>
 #include <stdlib.h>
+
+#include "util.c"
 
 void ucb1(double *reward, double *totalGain, double *totalOpt,
           uint32_t totalThresholds, uint32_t maxItems, uint64_t totalRounds,

@@ -5,14 +5,13 @@
 #include <stdio.h>
 #include <stdlib.h>
 
-#include "util.c"
-
 #include "epsilonGreedy.c"
 #include "exp3.c"
 #include "greedy.c"
 #include "optimal.c"
 #include "ucb1.c"
 #include "ucb2.c"
+#include "util.c"
 
 void printHelp() {
   printf("Usage:\n"
@@ -23,8 +22,6 @@ void printHelp() {
          "    -t <integer>    Set the number of thresholds (default = 10).\n"
          "    -m <integer>    Set the number of maximum held items "
          "(default = 1).\n"
-         /* "    -k      Set the program to be able to keep items at " */
-         /*        "the end of a round.\n" */
          "    -g              Run the Greedy algorithm.\n"
          "    -e              Run the Epsilon Greedy algorithm.\n"
          "    -u              Run the UCB1 algorithm.\n"
@@ -40,7 +37,6 @@ int main(int argc, char **argv) {
 
   uint32_t totalThresholds = 10;
   uint32_t maxItems = 1;
-
   Flag flag = {0, 0, 0, 0, 0};
 
   int opt;
@@ -58,9 +54,6 @@ int main(int argc, char **argv) {
     case 'm':
       maxItems = atoi(optarg);
       break;
-    /* case 'k': */
-    /*   keepItemsFlag = 1; */
-    /*   break; */
     case 'g':
       flag.greedyFlag = 1;
       break;
@@ -88,8 +81,8 @@ int main(int argc, char **argv) {
   /* INFO: Data array holds all of the prices found in the data file.
    * It's also a 1D array for values that are better suited in a 2D array, but
    * because of the sheer size of our data, it's better to save them like
-   * this. Access the n'th price of the t'th round with data[pricesPerRound *
-   * t + n].
+   * this. Access the n'th price of the t'th round with
+   * data[pricesPerRound * t + n].
    *
    * WARN: Don't run this program for very big files
    */
@@ -140,66 +133,63 @@ int main(int argc, char **argv) {
   calculateRewards(reward, data, totalRounds, pricesPerRound, totalThresholds,
                    maxItems);
 
-  /* printf("Calculating optimal result...\n"); */
-  /* double *optAlg = malloc(totalRounds * sizeof(double)); */
-  /* double *totalOpt = malloc(totalRounds * sizeof(double)); */
-  /* findOpt(data, optAlg, totalOpt, maxItems, totalRounds, pricesPerRound); */
+  printf("Calculating optimal result (best hand)...\n");
+  double *totalOpt = malloc(totalRounds * sizeof(double));
+  findBestHand(reward, totalOpt, totalRounds, totalThresholds);
 
-  printf("Calculating best hand...\n");
-  double *totalBestHand = malloc(totalRounds * sizeof(double));
-  findBestHand(reward, totalBestHand, totalRounds, totalThresholds);
+  // printf("Calculating optimal result (local extrema)...\n");
+  // double *totalExtremaOpt = malloc(totalRounds * sizeof(double));
+  // findOpt(data, totalExtremaOpt, maxItems, totalRounds, pricesPerRound);
 
   free(data);
 
   double *greedyGain = malloc(totalRounds * sizeof(double));
   if (flag.greedyFlag) {
     printf("Calculating Greedy...\n");
-    greedy(reward, greedyGain, totalBestHand, totalThresholds, maxItems,
-           totalRounds, pricesPerRound);
+    greedy(reward, greedyGain, totalOpt, totalThresholds, maxItems, totalRounds,
+           pricesPerRound);
   }
 
   double *eGreedyGain = malloc(totalRounds * sizeof(double));
   if (flag.eGreedyFlag) {
     printf("Calculating Epsilon-Greedy...\n");
-    epsilonGreedy(reward, eGreedyGain, totalBestHand, totalThresholds, maxItems,
+    epsilonGreedy(reward, eGreedyGain, totalOpt, totalThresholds, maxItems,
                   totalRounds, pricesPerRound);
   }
 
   double *ucb1Gain = malloc(totalRounds * sizeof(double));
   if (flag.ucb1Flag) {
     printf("Calculating UCB1...\n");
-    ucb1(reward, ucb1Gain, totalBestHand, totalThresholds, maxItems,
-         totalRounds, pricesPerRound);
+    ucb1(reward, ucb1Gain, totalOpt, totalThresholds, maxItems, totalRounds,
+         pricesPerRound);
   }
 
   double *ucb2Gain = malloc(totalRounds * sizeof(double));
   if (flag.ucb2Flag) {
     printf("Calculating UCB2...\n");
-    ucb2(reward, ucb2Gain, totalBestHand, totalThresholds, maxItems,
-         totalRounds, pricesPerRound);
+    ucb2(reward, ucb2Gain, totalOpt, totalThresholds, maxItems, totalRounds,
+         pricesPerRound);
   }
 
   double *exp3Gain = malloc(totalRounds * sizeof(double));
   if (flag.exp3Flag) {
     printf("Calculating EXP3...\n");
-    exp3(reward, exp3Gain, totalBestHand, totalThresholds, maxItems,
-         totalRounds, pricesPerRound);
+    exp3(reward, exp3Gain, totalOpt, totalThresholds, maxItems, totalRounds,
+         pricesPerRound);
   }
 
   free(reward);
-  /* free(optAlg); */
 
   printf("Plotting best hand regret...\n");
-  plotRegret(totalRounds, totalBestHand, greedyGain, eGreedyGain, ucb1Gain,
-             ucb2Gain, exp3Gain, flag);
+  plotRegret(totalRounds, totalOpt, greedyGain, eGreedyGain, ucb1Gain, ucb2Gain,
+             exp3Gain, flag);
 
-  /* printf("Plotting optimal regret...\n"); */
-  /* plotRegret(totalRounds, totalOpt, greedyGain, eGreedyGain, ucb1Gain,
-   * ucb2Gain, */
-  /*            exp3Gain, greedyFlag, eGreedyFlag, ucb1Flag, ucb2Flag,
-   * exp3Flag); */
+  // printf("Plotting optimal regret...\n");
+  // plotRegret(totalRounds, totalOpt, greedyGain, eGreedyGain, ucb1Gain,
+  // ucb2Gain, exp3Gain, flag);
 
-  free(totalBestHand);
+  // free(totalExtremaOpt);
+  free(totalOpt);
   free(greedyGain);
   free(eGreedyGain);
   free(ucb1Gain);
