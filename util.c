@@ -5,6 +5,14 @@
 #include <stdlib.h>
 
 typedef struct {
+  uint8_t greedyFlag;
+  uint8_t eGreedyFlag;
+  uint8_t ucb1Flag;
+  uint8_t ucb2Flag;
+  uint8_t exp3Flag;
+} Flag;
+
+typedef struct {
   // the placement of the threshold in [0,1]
   double threshold;
   // how much money the threshold has made
@@ -75,10 +83,9 @@ void calculateRewards(double *reward, double *data, uint64_t totalRounds,
   }
 }
 
-void plotRegret(uint64_t totalRounds, double *opt, double *greedyGain,
+void plotRegret(uint64_t totalRounds, double *totalOpt, double *greedyGain,
                 double *eGreedyGain, double *ucb1Gain, double *ucb2Gain,
-                double *exp3Gain, uint8_t greedyFlag, uint8_t eGreedyFlag,
-                uint8_t ucb1Flag, uint8_t ucb2Flag, uint8_t exp3Flag) {
+                double *exp3Gain, Flag flag) {
   uint32_t step = 1;
   // bigger step if the dataset is bigger, makes plot way faster
   if (totalRounds > 10000) {
@@ -97,29 +104,29 @@ void plotRegret(uint64_t totalRounds, double *opt, double *greedyGain,
 
   fprintf(gnuplot, "plot ");
 
-  if (greedyFlag) {
+  if (flag.greedyFlag) {
     fprintf(gnuplot, "'-' using 1:2 with lines lt rgb 'orange' lw 2 title "
                      "'Greedy Regret', ");
   }
 
-  if (eGreedyFlag) {
+  if (flag.eGreedyFlag) {
     fprintf(gnuplot, "'-' using 1:2 with lines lt rgb 'red' lw 2 title "
                      "'eGreedy Regret', ");
   }
 
-  if (ucb1Flag) {
+  if (flag.ucb1Flag) {
     fprintf(
         gnuplot,
         "'-' using 1:2 with lines lt rgb 'blue' lw 2 title 'UCB1 Regret', ");
   }
 
-  if (ucb2Flag) {
+  if (flag.ucb2Flag) {
     fprintf(
         gnuplot,
         "'-' using 1:2 with lines lt rgb 'purple' lw 2 title 'UCB2 Regret', ");
   }
 
-  if (exp3Flag) {
+  if (flag.exp3Flag) {
     fprintf(
         gnuplot,
         "'-' using 1:2 with lines lt rgb 'green' lw 2 title 'EXP3 Regret', ");
@@ -127,37 +134,37 @@ void plotRegret(uint64_t totalRounds, double *opt, double *greedyGain,
 
   fprintf(gnuplot, "\n");
 
-  if (greedyFlag) {
+  if (flag.greedyFlag) {
     for (int t = 0; t < totalRounds; t += step) {
-      fprintf(gnuplot, "%d %lf\n", t, (opt[t] - greedyGain[t]) / (t + 1));
+      fprintf(gnuplot, "%d %lf\n", t, (totalOpt[t] - greedyGain[t]) / (t + 1));
     }
     fprintf(gnuplot, "e\n");
   }
 
-  if (eGreedyFlag) {
+  if (flag.eGreedyFlag) {
     for (int t = 0; t < totalRounds; t += step) {
-      fprintf(gnuplot, "%d %lf\n", t, (opt[t] - eGreedyGain[t]) / (t + 1));
+      fprintf(gnuplot, "%d %lf\n", t, (totalOpt[t] - eGreedyGain[t]) / (t + 1));
     }
     fprintf(gnuplot, "e\n");
   }
 
-  if (ucb1Flag) {
+  if (flag.ucb1Flag) {
     for (int t = 0; t < totalRounds; t += step) {
-      fprintf(gnuplot, "%d %lf\n", t, (opt[t] - ucb1Gain[t]) / (t + 1));
+      fprintf(gnuplot, "%d %lf\n", t, (totalOpt[t] - ucb1Gain[t]) / (t + 1));
     }
     fprintf(gnuplot, "e\n");
   }
 
-  if (ucb2Flag) {
+  if (flag.ucb2Flag) {
     for (int t = 0; t < totalRounds; t += step) {
-      fprintf(gnuplot, "%d %lf\n", t, (opt[t] - ucb2Gain[t]) / (t + 1));
+      fprintf(gnuplot, "%d %lf\n", t, (totalOpt[t] - ucb2Gain[t]) / (t + 1));
     }
     fprintf(gnuplot, "e\n");
   }
 
-  if (exp3Flag) {
+  if (flag.exp3Flag) {
     for (int t = 0; t < totalRounds; t += step) {
-      fprintf(gnuplot, "%d %lf\n", t, (opt[t] - exp3Gain[t]) / (t + 1));
+      fprintf(gnuplot, "%d %lf\n", t, (totalOpt[t] - exp3Gain[t]) / (t + 1));
     }
     fprintf(gnuplot, "e\n");
   }
