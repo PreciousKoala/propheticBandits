@@ -1,10 +1,14 @@
+FLAGS = -Wall -O3 -fsanitize=address
+LIBS = -lgsl -lgslcblas -lm
+SRC = propheticBandits.c util.c optimal.c greedy.c epsilonGreedy.c ucb1.c ucb2.c exp3.c
+
 all: propheticBandits priceGenerator
 
-propheticBandits: propheticBandits.c
-	@gcc propheticBandits.c -Wall -O3 -o propheticBandits -lgsl -lgslcblas -lm -fsanitize=address
+propheticBandits: $(SRC)
+	@gcc propheticBandits.c $(FLAGS) $(LIBS) -o propheticBandits
 
 priceGenerator: priceGenerator.c
-	@gcc priceGenerator.c -Wall -O3 -o priceGenerator -lgsl -lgslcblas -lm -fsanitize=address
+	@gcc priceGenerator.c $(FLAGS) $(LIBS) -o priceGenerator
 	@mkdir -p prophetData
 
 clean:
