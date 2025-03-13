@@ -176,7 +176,6 @@ int main(int argc, char *argv[]) {
   if (autoregressiveFlag) {
     double prev = gsl_ran_gaussian(r, 1);
     for (uint64_t i = 0; i < totalRounds * pricesPerRound; i++) {
-      // TODO: evaluate if this is sufficient
       double noise = gsl_ran_gaussian(r, 1);
       double a = prev * autoregressivePhi + noise;
       prev = a;

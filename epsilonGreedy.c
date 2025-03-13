@@ -42,6 +42,7 @@ void epsilonGreedy(double *reward, double *totalGain, double *totalOpt,
   totalGain[0] = 0;
 
   for (uint64_t t = 0; t < totalRounds; t++) {
+    // TODO: find good exploration chance
     double exploreProb = cbrt(totalThresholds * log(t + 1) / (t + 1));
     // this will be 0 in the first round, and will always explore
 
