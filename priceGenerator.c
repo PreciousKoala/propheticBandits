@@ -106,8 +106,13 @@ int main(int argc, char *argv[]) {
   gsl_rng_set(r, time(NULL));
 
   char filename[256];
-  snprintf(filename, sizeof(filename), "prophetData/%cdataT%luN%lu.dat",
-           distLetter, totalRounds, pricesPerRound);
+  if (randomizeFlag) {
+    snprintf(filename, sizeof(filename), "prophetData/%crdataT%luN%lu.dat",
+             distLetter, totalRounds, pricesPerRound);
+  } else {
+    snprintf(filename, sizeof(filename), "prophetData/%cdataT%luN%lu.dat",
+             distLetter, totalRounds, pricesPerRound);
+  }
 
   FILE *file = fopen(filename, "wb");
   if (!file) {
@@ -187,7 +192,7 @@ int main(int argc, char *argv[]) {
     for (uint64_t t = 0; t < totalRounds; t++) {
       for (uint64_t n = 0; n < pricesPerRound; n++) {
         double b = (double)gsl_ran_bernoulli(r, prob);
-        printf("%lf\n", b);
+        // printf("%lf\n", b);
         fwrite(&b, sizeof(b), 1, file);
       }
       if (randomizeFlag) {
