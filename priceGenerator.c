@@ -1,6 +1,7 @@
 #include <getopt.h>
 #include <gsl/gsl_randist.h>
 #include <gsl/gsl_rng.h>
+#include <math.h>
 #include <stdint.h>
 #include <stdio.h>
 #include <stdlib.h>
@@ -11,21 +12,24 @@ void printHelp() {
          "    # Only one option can be used at a time.\n"
          "    # If more than one option is chosen, the program chooses the "
          "last one to be declared.\n"
-         "    # If no option is chosen, the program chooses `-u 1`.\n\n"
+         "    # If no option is chosen, the program chooses the uniform "
+         "distribution.\n\n"
          "    priceGenerator [option] [-t <number of rounds>] [-n <prices "
          "per round>]\n"
          "    priceGenerator -h      # Display this help screen.\n\n"
          "Options:\n"
-         "    -u <high>            Generate prices from the Uniform "
-         "Distribution from 0 to <high> (default).\n"
-         "    -g <mean>            Generate prices from the Gaussian "
-         "Distribution with sigma 1.\n"
-         "    -e <mean>            Generate prices from the Exponential "
-         "Distribution.\n"
+         "    -r                   Randomize distibution parameters for "
+         "options u, g, e, and b.\n"
+         "    -u                   Generate prices from the Uniform "
+         "Distribution from 0 to 1.\n"
+         "    -g                   Generate prices from the Gaussian "
+         "Distribution with mean 0 and sigma 1.\n"
+         "    -e                   Generate prices from the Exponential "
+         "Distribution with mean 1.\n"
          "    -a <phi>             Generate prices from an Autoregressive "
          "Model of order 1.\n"
-         "    -b <prob>            Generate prices from the Bernoulli "
-         "Distribution (generates one with probability p).\n");
+         "    -b                   Generate prices from the Bernoulli "
+         "Distribution with probability of 0.5.\n");
 }
 
 int main(int argc, char *argv[]) {
@@ -34,19 +38,10 @@ int main(int argc, char *argv[]) {
     return 0;
   }
 
-  uint8_t uniformFlag = 1;
-  uint8_t gaussianFlag = 0;
-  uint8_t exponentialFlag = 0;
-  uint8_t autoregressiveFlag = 0;
-  uint8_t bernoulliFlag = 0;
-
   char distLetter = 'u';
+  uint8_t randomizeFlag = 0;
 
-  double uniformHigh = 1;
-  double gaussianMean = 1;
-  double exponentialMean = 1;
   double autoregressivePhi = 1;
-  double bernoulliProb = 0.5;
 
   uint64_t totalRounds = 1000;
   uint64_t pricesPerRound = 10;
@@ -55,72 +50,37 @@ int main(int argc, char *argv[]) {
 
   opterr = 0;
 
-  // TODO: instead of flags use a character varable
-  //
-  // TODO: randomized parameters flag (maybe remove flag parameters like mean or
-  // sigma since they get normalized anyway)
-  //
   // TODO: moving average model
   //
   // TODO: wiggly sine wave
   //
   // TODO: import stock market prices
   //
-  // TODO: find other good non-stationary models 
-  while ((opt = getopt(argc, argv, "hu:g:e:a:b:t:n:")) != -1) {
+  // TODO: find other good non-stationary models
+
+  while ((opt = getopt(argc, argv, "hrugea:bt:n:")) != -1) {
     switch (opt) {
     case 'h':
       printHelp();
       return 0;
+    case 'r':
+      randomizeFlag = 1;
+      break;
     case 'u':
-      uniformFlag = 1;
-      gaussianFlag = 0;
-      exponentialFlag = 0;
-      autoregressiveFlag = 0;
-      bernoulliFlag = 0;
       distLetter = 'u';
-
-      uniformHigh = atof(optarg);
       break;
     case 'g':
-      uniformFlag = 0;
-      gaussianFlag = 1;
-      exponentialFlag = 0;
-      autoregressiveFlag = 0;
-      bernoulliFlag = 0;
       distLetter = 'g';
-
-      gaussianMean = atof(optarg);
       break;
     case 'e':
-      uniformFlag = 0;
-      gaussianFlag = 0;
-      exponentialFlag = 1;
-      autoregressiveFlag = 0;
-      bernoulliFlag = 0;
       distLetter = 'e';
-
-      exponentialMean = atof(optarg);
       break;
     case 'a':
-      uniformFlag = 0;
-      gaussianFlag = 0;
-      exponentialFlag = 0;
-      autoregressiveFlag = 1;
-      bernoulliFlag = 0;
       distLetter = 'a';
-
       autoregressivePhi = atof(optarg);
       break;
     case 'b':
-      uniformFlag = 0;
-      gaussianFlag = 0;
-      exponentialFlag = 0;
-      autoregressiveFlag = 0;
-      bernoulliFlag = 1;
       distLetter = 'b';
-
-      bernoulliProb = atof(optarg);
       break;
     case 't':
       totalRounds = atoll(optarg);
@@ -129,8 +89,7 @@ int main(int argc, char *argv[]) {
       pricesPerRound = atoll(optarg);
       break;
     case '?':
-      if (optopt == 'u' || optopt == 'g' || optopt == 'e' || optopt == 'a' ||
-          optopt == 'b' || optopt == 't' || optopt == 'n')
+      if (optopt == 'a' || optopt == 't' || optopt == 'n')
         fprintf(stderr, "Option -%c requires an argument.\n", optopt);
       break;
     default:
@@ -159,46 +118,81 @@ int main(int argc, char *argv[]) {
   fwrite(&totalRounds, sizeof(totalRounds), 1, file);
   fwrite(&pricesPerRound, sizeof(pricesPerRound), 1, file);
 
-  if (uniformFlag) {
-    for (uint64_t i = 0; i < totalRounds * pricesPerRound; i++) {
-      double u = gsl_rng_uniform(r) * uniformHigh;
-      /* printf("%lf\n", u); */
-      fwrite(&u, sizeof(u), 1, file);
+  if (distLetter == 'u') {
+    double high = 1;
+    double low = 0;
+    for (uint64_t t = 0; t < totalRounds; t++) {
+      for (uint64_t n = 0; n < pricesPerRound; n++) {
+        double u = gsl_rng_uniform(r) * high + low;
+        // printf("%lf\n", u);
+        fwrite(&u, sizeof(u), 1, file);
+      }
+      if (randomizeFlag) {
+        low += gsl_ran_gaussian(r, 1);
+        high += gsl_ran_gaussian(r, 1);
+        if (high < low) {
+          // if low is larger than high then switch the their values
+          double temp = low;
+          low = high;
+          high = temp;
+        }
+      }
     }
   }
 
-  if (gaussianFlag) {
-    for (uint64_t i = 0; i < totalRounds * pricesPerRound; i++) {
-      double g = gsl_ran_gaussian(r, 1) + gaussianMean;
-      /* printf("%lf\n", g); */
-      fwrite(&g, sizeof(g), 1, file);
+  if (distLetter == 'g') {
+    double mean = 0;
+    double sigma = 1;
+    for (uint64_t t = 0; t < totalRounds; t++) {
+      for (uint64_t n = 0; n < pricesPerRound; n++) {
+        double g = gsl_ran_gaussian(r, sigma) + mean;
+        // printf("%lf\n", g);
+        fwrite(&g, sizeof(g), 1, file);
+      }
+      if (randomizeFlag) {
+        mean += gsl_ran_gaussian(r, 1);
+        // make sure sigma is positive
+        sigma = fabs(sigma + gsl_ran_gaussian(r, 1));
+      }
     }
   }
 
-  if (exponentialFlag) {
-    for (uint64_t i = 0; i < totalRounds * pricesPerRound; i++) {
-      double e = gsl_ran_exponential(r, exponentialMean);
-      /* printf("%lf\n", e); */
-      fwrite(&e, sizeof(e), 1, file);
+  if (distLetter == 'e') {
+    double mean = 1;
+    for (uint64_t t = 0; t < totalRounds; t++) {
+      for (uint64_t n = 0; n < pricesPerRound; n++) {
+        double e = gsl_ran_exponential(r, mean);
+        // printf("%lf\n", e);
+        fwrite(&e, sizeof(e), 1, file);
+      }
+      if (randomizeFlag) {
+        mean += gsl_ran_gaussian(r, 1);
+      }
     }
   }
 
-  if (autoregressiveFlag) {
+  if (distLetter == 'a') {
     double prev = gsl_ran_gaussian(r, 1);
     for (uint64_t i = 0; i < totalRounds * pricesPerRound; i++) {
       double noise = gsl_ran_gaussian(r, 1);
       double a = prev * autoregressivePhi + noise;
       prev = a;
-      printf("%lf\n", a);
+      // printf("%lf\n", a);
       fwrite(&a, sizeof(a), 1, file);
     }
   }
 
-  if (bernoulliFlag) {
-    for (uint64_t i = 0; i < totalRounds * pricesPerRound; i++) {
-      double e = (double)gsl_ran_bernoulli(r, bernoulliProb);
-      /* printf("%lf\n", e); */
-      fwrite(&e, sizeof(e), 1, file);
+  if (distLetter == 'b') {
+    double prob = 0.5;
+    for (uint64_t t = 0; t < totalRounds; t++) {
+      for (uint64_t n = 0; n < pricesPerRound; n++) {
+        double b = (double)gsl_ran_bernoulli(r, prob);
+        printf("%lf\n", b);
+        fwrite(&b, sizeof(b), 1, file);
+      }
+      if (randomizeFlag) {
+        prob = gsl_rng_uniform(r);
+      }
     }
   }
 
@@ -207,8 +201,7 @@ int main(int argc, char *argv[]) {
    *  Uncomment the printf lines above.
    *  Run the command:
    *
-   *  make && ./priceGenerator [flags] | gnuplot -p -e "plot '<cat' frequency
-   * with lines"
+   * ./priceGenerator [flags] | gnuplot -p -e "plot '<cat' frequency with lines"
    *
    */
 
