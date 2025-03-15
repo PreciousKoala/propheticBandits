@@ -55,8 +55,18 @@ int main(int argc, char *argv[]) {
 
   opterr = 0;
 
-  // TODO: add sigma and low arguments for -g and -u
-  // maybe also a second order autoregressive model
+  // TODO: instead of flags use a character varable
+  //
+  // TODO: randomized parameters flag (maybe remove flag parameters like mean or
+  // sigma since they get normalized anyway)
+  //
+  // TODO: moving average model
+  //
+  // TODO: wiggly sine wave
+  //
+  // TODO: import stock market prices
+  //
+  // TODO: find other good non-stationary models 
   while ((opt = getopt(argc, argv, "hu:g:e:a:b:t:n:")) != -1) {
     switch (opt) {
     case 'h':

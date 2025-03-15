@@ -84,11 +84,10 @@ void succElim(double *reward, double *totalGain, double *totalOpt,
   }
 
   printf("\n");
-  printf(
-      "----------------------------------------SUCCESSIVE-ELIMINATION--------"
-      "--------------------------------\n");
+  printf("----------------------------------------SUCCESSIVE-ELIMINATION-------"
+         "---------------------------------\n");
   printf("Threshold\tTotal Reward\tTimes Chosen\tAverage "
-         "Reward\tUCB\t\tLCB\t\tActive\n");
+         "Reward\tFinal UCB\tFinal LCB\tActive\n");
   for (int32_t th = 0; th < totalThresholds; th++) {
     printf("%-7.2lf\t\t%-10.2lf\t%-12lu\t%-8.6lf\t%-10.5lf\t%-10.5lf\t%d\n",
            thres[th].threshold, thres[th].rewardSum, thres[th].timesChosen,
@@ -97,7 +96,7 @@ void succElim(double *reward, double *totalGain, double *totalOpt,
   }
 
   printf("---------------------------------------------------------------------"
-         "--------------------------------\n");
+         "---------------------------------\n");
   printf("Total Gain: %lf\n", totalGain[totalRounds - 1]);
   printf("Total OPT: %lf\n", totalOpt[totalRounds - 1]);
   printf("Total Regret: %lf\n",
@@ -108,7 +107,7 @@ void succElim(double *reward, double *totalGain, double *totalOpt,
          (totalOpt[totalRounds - 1] - totalGain[totalRounds - 1]) /
              totalRounds);
   printf("---------------------------------------------------------------------"
-         "--------------------------------\n\n");
+         "---------------------------------\n\n");
 
   free(thresActive);
   free(upperConfBound);
