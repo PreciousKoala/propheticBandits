@@ -8,6 +8,7 @@
 typedef struct {
   uint8_t greedyFlag;
   uint8_t eGreedyFlag;
+  uint8_t succElimFlag;
   uint8_t ucb1Flag;
   uint8_t ucb2Flag;
   uint8_t exp3Flag;
@@ -85,8 +86,8 @@ void calculateRewards(double *reward, double *data, uint64_t totalRounds,
 }
 
 void plotRegret(uint64_t totalRounds, double *totalOpt, double *greedyGain,
-                double *eGreedyGain, double *ucb1Gain, double *ucb2Gain,
-                double *exp3Gain, Flag flag) {
+                double *eGreedyGain, double *succElimGain, double *ucb1Gain,
+                double *ucb2Gain, double *exp3Gain, Flag flag) {
   uint32_t step = 1;
   // bigger step if the dataset is bigger, makes plot way faster
   if (totalRounds > 10000) {
@@ -97,7 +98,7 @@ void plotRegret(uint64_t totalRounds, double *totalOpt, double *greedyGain,
   if (!gnuplot) {
     exit(1);
   }
-  fprintf(gnuplot, "set title 'Regret Plot'\n");
+  fprintf(gnuplot, "set title 'Average Regret Plot'\n");
   fprintf(gnuplot, "set xlabel 'Rounds'\n");
   fprintf(gnuplot, "set ylabel 'Regret'\n");
   fprintf(gnuplot, "set grid\n");
@@ -113,6 +114,11 @@ void plotRegret(uint64_t totalRounds, double *totalOpt, double *greedyGain,
   if (flag.eGreedyFlag) {
     fprintf(gnuplot, "'-' using 1:2 with lines lt rgb 'red' lw 2 title "
                      "'eGreedy Regret', ");
+  }
+
+  if (flag.succElimFlag) {
+    fprintf(gnuplot, "'-' using 1:2 with lines lt rgb 'cyan' lw 2 title "
+                     "'Successive Elimination Regret', ");
   }
 
   if (flag.ucb1Flag) {
@@ -145,6 +151,14 @@ void plotRegret(uint64_t totalRounds, double *totalOpt, double *greedyGain,
   if (flag.eGreedyFlag) {
     for (int t = 0; t < totalRounds; t += step) {
       fprintf(gnuplot, "%d %lf\n", t, (totalOpt[t] - eGreedyGain[t]) / (t + 1));
+    }
+    fprintf(gnuplot, "e\n");
+  }
+
+  if (flag.succElimFlag) {
+    for (int t = 0; t < totalRounds; t += step) {
+      fprintf(gnuplot, "%d %lf\n", t,
+              (totalOpt[t] - succElimGain[t]) / (t + 1));
     }
     fprintf(gnuplot, "e\n");
   }

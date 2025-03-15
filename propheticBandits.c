@@ -9,6 +9,7 @@
 #include "exp3.c"
 #include "greedy.c"
 #include "optimal.c"
+#include "succElim.c"
 #include "ucb1.c"
 #include "ucb2.c"
 #include "util.c"
@@ -24,6 +25,7 @@ void printHelp() {
          "(default = 1).\n"
          "    -g              Run the Greedy algorithm.\n"
          "    -e              Run the Epsilon Greedy algorithm.\n"
+         "    -s              Run the Successive Elimination algorithm.\n"
          "    -u              Run the UCB1 algorithm.\n"
          "    -U              Run the UCB2 algorithm.\n"
          "    -x              Run the EXP3 algorithm.\n");
@@ -43,7 +45,7 @@ int main(int argc, char **argv) {
 
   opterr = 0;
 
-  while ((opt = getopt(argc, argv, ":hm:geuUxt:")) != -1) {
+  while ((opt = getopt(argc, argv, ":hm:gesuUxt:")) != -1) {
     switch (opt) {
     case 'h':
       printHelp();
@@ -59,6 +61,9 @@ int main(int argc, char **argv) {
       break;
     case 'e':
       flag.eGreedyFlag = 1;
+      break;
+    case 's':
+      flag.succElimFlag = 1;
       break;
     case 'u':
       flag.ucb1Flag = 1;
@@ -157,6 +162,13 @@ int main(int argc, char **argv) {
                   totalRounds, pricesPerRound);
   }
 
+  double *succElimGain = malloc(totalRounds * sizeof(double));
+  if (flag.succElimFlag) {
+    printf("Calculating Successive Elimination...\n");
+    succElim(reward, succElimGain, totalOpt, totalThresholds, maxItems,
+             totalRounds, pricesPerRound);
+  }
+
   double *ucb1Gain = malloc(totalRounds * sizeof(double));
   if (flag.ucb1Flag) {
     printf("Calculating UCB1...\n");
@@ -181,17 +193,18 @@ int main(int argc, char **argv) {
   free(reward);
 
   printf("Plotting best hand regret...\n");
-  plotRegret(totalRounds, totalOpt, greedyGain, eGreedyGain, ucb1Gain, ucb2Gain,
-             exp3Gain, flag);
+  plotRegret(totalRounds, totalOpt, greedyGain, eGreedyGain, succElimGain,
+             ucb1Gain, ucb2Gain, exp3Gain, flag);
 
   // printf("Plotting optimal regret...\n");
-  // plotRegret(totalRounds, totalOpt, greedyGain, eGreedyGain, ucb1Gain,
-  // ucb2Gain, exp3Gain, flag);
+  // plotRegret(totalRounds, totalOpt, greedyGain, eGreedyGain, succElimGain,
+  // ucb1Gain, ucb2Gain, exp3Gain, flag);
 
   // free(totalExtremaOpt);
   free(totalOpt);
   free(greedyGain);
   free(eGreedyGain);
+  free(succElimGain);
   free(ucb1Gain);
   free(ucb2Gain);
   free(exp3Gain);

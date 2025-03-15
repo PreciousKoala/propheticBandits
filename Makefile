@@ -1,6 +1,6 @@
 FLAGS = -Wall -O3 -fsanitize=address
 LIBS = -lgsl -lgslcblas -lm
-SRC = propheticBandits.c util.c optimal.c greedy.c epsilonGreedy.c ucb1.c ucb2.c exp3.c
+SRC = propheticBandits.c util.c optimal.c greedy.c epsilonGreedy.c succElim.c ucb1.c ucb2.c exp3.c
 
 all: propheticBandits priceGenerator
 
