@@ -128,7 +128,7 @@ int main(int argc, char *argv[]) {
     double low = 0;
     for (uint64_t t = 0; t < totalRounds; t++) {
       for (uint64_t n = 0; n < pricesPerRound; n++) {
-        double u = gsl_rng_uniform(r) * high + low;
+        double u = gsl_rng_uniform(r) * (high-low) + low;
         // printf("%lf\n", u);
         fwrite(&u, sizeof(u), 1, file);
       }
