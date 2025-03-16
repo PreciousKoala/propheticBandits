@@ -14,7 +14,7 @@ void printHelp() {
          "last one to be declared.\n"
          "    # If no option is chosen, the program chooses the uniform "
          "distribution.\n\n"
-         "    priceGenerator [option] [-t <number of rounds>] [-n <prices "
+         "    priceGenerator [options] [-t <number of rounds>] [-n <prices "
          "per round>]\n"
          "    priceGenerator -h      # Display this help screen.\n\n"
          "Options:\n"
@@ -26,10 +26,18 @@ void printHelp() {
          "Distribution with mean 0 and sigma 1.\n"
          "    -e                   Generate prices from the Exponential "
          "Distribution with mean 1.\n"
-         "    -a <phi>             Generate prices from an Autoregressive "
-         "Model of order 1.\n"
          "    -b                   Generate prices from the Bernoulli "
-         "Distribution with probability of 0.5.\n");
+         "Distribution with probability of 0.5.\n"
+         "    -a <phi>             Generate prices from an Autoregressive "
+         "Model of order 1:\n"
+         "                             f(n) = phi * f(n - 1) + error\n"
+         "    -s <frequency>       Generate prices from a wiggly sine wave:\n"
+         "                             f(x) = 3 * sin(x * frequency * 2 * pi / "
+         "(T * N)) + error\n"
+         "    -c <frequency>       Generate prices from a wiggly sine wave "
+         "with a steeper curve:\n"
+         "                             f(x) = 3 * sin(x * frequency * 2 * pi / "
+         "(T * N))^(1 / 3) + error\n");
 }
 
 int main(int argc, char *argv[]) {
@@ -40,8 +48,10 @@ int main(int argc, char *argv[]) {
 
   char distLetter = 'u';
   uint8_t randomizeFlag = 0;
+  uint8_t stationaryMean = 0;
 
   double autoregressivePhi = 1;
+  double sineFrequency = 1;
 
   uint64_t totalRounds = 1000;
   uint64_t pricesPerRound = 10;
@@ -52,13 +62,13 @@ int main(int argc, char *argv[]) {
 
   // TODO: moving average model
   //
-  // TODO: wiggly sine wave
-  //
   // TODO: import stock market prices
   //
   // TODO: find other good non-stationary models
+  //
+  // TODO: make bash script to automatically create all possible data combos
 
-  while ((opt = getopt(argc, argv, "hrugea:bt:n:")) != -1) {
+  while ((opt = getopt(argc, argv, "hrugeba:s:c:t:n:")) != -1) {
     switch (opt) {
     case 'h':
       printHelp();
@@ -68,19 +78,34 @@ int main(int argc, char *argv[]) {
       break;
     case 'u':
       distLetter = 'u';
+      stationaryMean = 1;
       break;
     case 'g':
       distLetter = 'g';
+      stationaryMean = 1;
       break;
     case 'e':
       distLetter = 'e';
-      break;
-    case 'a':
-      distLetter = 'a';
-      autoregressivePhi = atof(optarg);
+      stationaryMean = 1;
       break;
     case 'b':
       distLetter = 'b';
+      stationaryMean = 1;
+      break;
+    case 'a':
+      distLetter = 'a';
+      stationaryMean = 0;
+      autoregressivePhi = atof(optarg);
+      break;
+    case 's':
+      distLetter = 's';
+      stationaryMean = 0;
+      sineFrequency = atof(optarg);
+      break;
+    case 'c':
+      distLetter = 'c';
+      stationaryMean = 0;
+      sineFrequency = atof(optarg);
       break;
     case 't':
       totalRounds = atoll(optarg);
@@ -106,7 +131,7 @@ int main(int argc, char *argv[]) {
   gsl_rng_set(r, time(NULL));
 
   char filename[256];
-  if (randomizeFlag) {
+  if (randomizeFlag && stationaryMean) {
     snprintf(filename, sizeof(filename), "prophetData/%crdataT%luN%lu.dat",
              distLetter, totalRounds, pricesPerRound);
   } else {
@@ -128,7 +153,7 @@ int main(int argc, char *argv[]) {
     double low = 0;
     for (uint64_t t = 0; t < totalRounds; t++) {
       for (uint64_t n = 0; n < pricesPerRound; n++) {
-        double u = gsl_rng_uniform(r) * (high-low) + low;
+        double u = gsl_rng_uniform(r) * (high - low) + low;
         // printf("%lf\n", u);
         fwrite(&u, sizeof(u), 1, file);
       }
@@ -176,17 +201,6 @@ int main(int argc, char *argv[]) {
     }
   }
 
-  if (distLetter == 'a') {
-    double prev = gsl_ran_gaussian(r, 1);
-    for (uint64_t i = 0; i < totalRounds * pricesPerRound; i++) {
-      double noise = gsl_ran_gaussian(r, 1);
-      double a = prev * autoregressivePhi + noise;
-      prev = a;
-      // printf("%lf\n", a);
-      fwrite(&a, sizeof(a), 1, file);
-    }
-  }
-
   if (distLetter == 'b') {
     double prob = 0.5;
     for (uint64_t t = 0; t < totalRounds; t++) {
@@ -198,6 +212,41 @@ int main(int argc, char *argv[]) {
       if (randomizeFlag) {
         prob = gsl_rng_uniform(r);
       }
+    }
+  }
+
+  if (distLetter == 'a') {
+    double prev = gsl_ran_gaussian(r, 1);
+    for (uint64_t i = 0; i < totalRounds * pricesPerRound; i++) {
+      double noise = gsl_ran_gaussian(r, 1);
+      double a = prev * autoregressivePhi + noise;
+      prev = a;
+      // printf("%lf\n", a);
+      fwrite(&a, sizeof(a), 1, file);
+    }
+  }
+
+  if (distLetter == 's') {
+    for (uint64_t i = 0; i < totalRounds * pricesPerRound; i++) {
+      double noise = gsl_ran_gaussian(r, 1);
+      // The sinewave will complete <frequency> cycles throughout all the rounds
+      double angularFreq =
+          2 * M_PI * sineFrequency / (totalRounds * pricesPerRound);
+      double s = 5 * sin(i * angularFreq) + noise;
+      // printf("%lf\n", s);
+      fwrite(&s, sizeof(s), 1, file);
+    }
+  }
+
+  if (distLetter == 'c') {
+    for (uint64_t i = 0; i < totalRounds * pricesPerRound; i++) {
+      double noise = gsl_ran_gaussian(r, 1);
+      // The sinewave will complete <frequency> cycles throughout all the rounds
+      double angularFreq =
+          2 * M_PI * sineFrequency / (totalRounds * pricesPerRound);
+      double c = 7 * cbrt(sin(i * angularFreq)) + noise;
+      // printf("%lf\n", c);
+      fwrite(&c, sizeof(c), 1, file);
     }
   }
 
