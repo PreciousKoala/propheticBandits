@@ -1,8 +1,10 @@
 #include <math.h>
 #include <stdint.h>
 #include <stdio.h>
+#include <stdlib.h>
 
-#include "util.c"
+#include "banditAlgs.h"
+#include "util.h"
 
 void findOpt(double *data, double *totalOpt, uint8_t maxItems,
              uint64_t totalRounds, uint64_t pricesPerRound) {

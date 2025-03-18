@@ -5,14 +5,8 @@
 #include <stdio.h>
 #include <stdlib.h>
 
-#include "epsilonGreedy.c"
-#include "exp3.c"
-#include "greedy.c"
-#include "optimal.c"
-#include "succElim.c"
-#include "ucb1.c"
-#include "ucb2.c"
-#include "util.c"
+#include <banditAlgs.h>
+#include <util.h>
 
 void printHelp() {
   printf("Usage:\n"

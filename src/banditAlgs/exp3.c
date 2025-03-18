@@ -4,7 +4,8 @@
 #include <stdlib.h>
 #include <time.h>
 
-#include "util.c"
+#include "banditAlgs.h"
+#include "util.h"
 
 void exp3(double *reward, double *totalGain, double *totalOpt,
           uint32_t totalThresholds, uint32_t maxItems, uint64_t totalRounds,

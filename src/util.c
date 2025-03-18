@@ -1,29 +1,8 @@
-#ifndef UTIL_C
-#define UTIL_C
-
 #include <stdint.h>
 #include <stdio.h>
 #include <stdlib.h>
 
-typedef struct {
-  uint8_t greedyFlag;
-  uint8_t eGreedyFlag;
-  uint8_t succElimFlag;
-  uint8_t ucb1Flag;
-  uint8_t ucb2Flag;
-  uint8_t exp3Flag;
-} Flag;
-
-typedef struct {
-  // the placement of the threshold in [0,1]
-  double threshold;
-  // how much money the threshold has made
-  double rewardSum;
-  // how many times the threshold has been picked
-  uint64_t timesChosen;
-  // how much money on average the threshold has made
-  double avgReward;
-} Threshold;
+#include "util.h"
 
 void initThreshold(Threshold *thres, uint32_t totalThresholds) {
   for (uint32_t th = 0; th < totalThresholds; th++) {
@@ -187,5 +166,3 @@ void plotRegret(uint64_t totalRounds, double *totalOpt, double *greedyGain,
   fflush(gnuplot);
   pclose(gnuplot);
 }
-
-#endif
