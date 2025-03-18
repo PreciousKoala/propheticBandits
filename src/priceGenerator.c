@@ -5,7 +5,10 @@
 #include <stdint.h>
 #include <stdio.h>
 #include <stdlib.h>
+#include <sys/stat.h>
+#include <sys/types.h>
 #include <time.h>
+#include <unistd.h>
 
 void printHelp() {
   printf("Usage:\n"
@@ -126,6 +129,11 @@ int main(int argc, char *argv[]) {
   T = gsl_rng_default;
   r = gsl_rng_alloc(T);
   gsl_rng_set(r, time(NULL));
+
+  struct stat st = {0};
+  if (stat("prophetData", &st) == -1) {
+    mkdir("prophetData", 0700);
+  }
 
   char filename[256];
   if (randomizeFlag) {

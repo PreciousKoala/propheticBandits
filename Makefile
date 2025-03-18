@@ -14,7 +14,6 @@ $(PROPHET): $(OBJ)
 
 $(PRICE): obj/priceGenerator.o
 	@mkdir -p bin
-	@mkdir -p prophetData
 	@gcc $^ $(FLAGS) $(LIBS) -o $@
 
 obj/%.o: src/%.c
