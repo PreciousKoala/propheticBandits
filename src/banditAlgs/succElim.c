@@ -33,17 +33,6 @@ void succElim(double *reward, double *totalGain, double *totalOpt,
 
   totalGain[0] = 0;
 
-  double rewardMin = INFINITY;
-  double rewardMax = -INFINITY;
-  for (uint64_t i = 0; i < totalRounds * totalThresholds; i++) {
-    if (reward[i] < rewardMin) {
-      rewardMin = reward[i];
-    }
-    if (reward[i] > rewardMax) {
-      rewardMax = reward[i];
-    }
-  }
-
   double *upperConfBound = malloc(totalThresholds * sizeof(double));
   double *lowerConfBound = malloc(totalThresholds * sizeof(double));
   uint8_t *thresActive = malloc(totalThresholds * sizeof(uint8_t));
@@ -64,12 +53,11 @@ void succElim(double *reward, double *totalGain, double *totalOpt,
     double maxLCB = -INFINITY;
     for (uint32_t th = 0; th < totalThresholds; th++) {
       if (thresActive[th]) {
-        double normalizedAvg =
-            (thres[th].avgReward - rewardMin) / (rewardMax - rewardMin);
+        double average = thres[th].avgReward;
         double confRadius = sqrt(2 * log(t + 1) / thres[th].timesChosen);
 
-        upperConfBound[th] = normalizedAvg + confRadius;
-        lowerConfBound[th] = normalizedAvg - confRadius;
+        upperConfBound[th] = average + confRadius;
+        lowerConfBound[th] = average - confRadius;
 
         if (lowerConfBound[th] > maxLCB) {
           maxLCB = lowerConfBound[th];

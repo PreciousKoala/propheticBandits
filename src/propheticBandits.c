@@ -116,24 +116,38 @@ int main(int argc, char **argv) {
     return 1;
   }
 
-  double min = INFINITY;
-  double max = -INFINITY;
+  double dataMin = INFINITY;
+  double dataMax = -INFINITY;
 
   for (uint64_t i = 0; i < totalRounds * pricesPerRound; i++) {
-    if (data[i] < min)
-      min = data[i];
-    if (data[i] > max)
-      max = data[i];
+    if (data[i] < dataMin)
+      dataMin = data[i];
+    if (data[i] > dataMax)
+      dataMax = data[i];
   }
 
   // Normalize prices to [0, 1]
   printf("Normalizing prices to [0,1]...\n");
-  normalizePrices(min, max, data, totalRounds, pricesPerRound);
+  normalizePrices(dataMin, dataMax, data, totalRounds, pricesPerRound);
 
   printf("Calculating rewards...\n");
   double *reward = malloc(totalRounds * totalThresholds * sizeof(double));
   calculateRewards(reward, data, totalRounds, pricesPerRound, totalThresholds,
                    maxItems);
+
+  double rewardMin = INFINITY;
+  double rewardMax = -INFINITY;
+
+  for (uint64_t i = 0; i < totalRounds * totalThresholds; i++) {
+    if (reward[i] < rewardMin)
+      rewardMin = reward[i];
+    if (reward[i] > rewardMax)
+      rewardMax = reward[i];
+  }
+
+  // Normalize prices to [0, 1]
+  printf("Normalizing rewards to [0,1]...\n");
+  normalizePrices(rewardMin, rewardMax, reward, totalRounds, totalThresholds);
 
   printf("Calculating optimal result (best hand)...\n");
   double *totalOpt = malloc(totalRounds * sizeof(double));

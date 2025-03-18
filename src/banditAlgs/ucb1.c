@@ -31,17 +31,6 @@ void ucb1(double *reward, double *totalGain, double *totalOpt,
 
   totalGain[0] = 0;
 
-  double rewardMin = INFINITY;
-  double rewardMax = -INFINITY;
-  for (uint64_t i = 0; i < totalRounds * totalThresholds; i++) {
-    if (reward[i] < rewardMin) {
-      rewardMin = reward[i];
-    }
-    if (reward[i] > rewardMax) {
-      rewardMax = reward[i];
-    }
-  }
-
   uint32_t chosenTh = 0;
   double *upperConfBound = malloc(totalThresholds * sizeof(double));
 
@@ -54,9 +43,10 @@ void ucb1(double *reward, double *totalGain, double *totalOpt,
     chosenTh = 0;
 
     for (uint32_t th = 0; th < totalThresholds; th++) {
-      upperConfBound[th] =
-          sqrt(2 * log(t + 1) / thres[th].timesChosen) +
-          (thres[th].avgReward - rewardMin) / (rewardMax - rewardMin);
+      double average = thres[th].avgReward;
+      double confRadius = sqrt(2 * log(t + 1) / thres[th].timesChosen);
+      upperConfBound[th] = average + confRadius;
+
       if (upperConfBound[th] > max) {
         max = upperConfBound[th];
         chosenTh = th;

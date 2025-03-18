@@ -59,17 +59,6 @@ void exp3(double *reward, double *totalGain, double *totalOpt,
     thresholdWeight[th] = 1;
   }
 
-  double rewardMin = INFINITY;
-  double rewardMax = -INFINITY;
-  for (uint64_t i = 0; i < totalRounds * totalThresholds; i++) {
-    if (reward[i] < rewardMin) {
-      rewardMin = reward[i];
-    }
-    if (reward[i] > rewardMax) {
-      rewardMax = reward[i];
-    }
-  }
-
   long double weightSum = 0;
   for (uint64_t t = 0; t < totalRounds; t++) {
     // upper bound is variable for easier future changes
@@ -104,10 +93,8 @@ void exp3(double *reward, double *totalGain, double *totalOpt,
     runRound(thres, chosenTh, totalThresholds, reward, totalGain, t);
 
     // weight only changes for the chosen threshold
-    double normalizedGain =
-        (reward[totalThresholds * t + chosenTh] - rewardMin) /
-        (rewardMax - rewardMin);
-    double estimatedReward = normalizedGain / thresholdProb;
+    double gain = reward[totalThresholds * t + chosenTh];
+    double estimatedReward = gain / thresholdProb;
     thresholdWeight[chosenTh] *=
         expl(gamma * estimatedReward / totalThresholds);
   }
