@@ -1,16 +1,26 @@
 FLAGS = -Wall -O3 -fsanitize=address -Iinclude
 LIBS = -lgsl -lgslcblas -lm
-SRC = src/propheticBandits.c src/util.c src/banditAlgs/optimal.c src/banditAlgs/greedy.c src/banditAlgs/epsilonGreedy.c src/banditAlgs/succElim.c src/banditAlgs/ucb1.c src/banditAlgs/ucb2.c src/banditAlgs/exp3.c
+SRC = src/propheticBandits.c src/util.c $(wildcard src/banditAlgs/*.c)
+OBJ = $(patsubst src/%.c, obj/%.o, $(SRC))
 
-all: propheticBandits priceGenerator
+PROPHET = bin/propheticBandits
+PRICE = bin/priceGenerator
 
-propheticBandits: src/propheticBandits.c
-	@gcc $(SRC) $(FLAGS) $(LIBS) -o bin/propheticBandits
+all: $(PROPHET) $(PRICE)
 
-priceGenerator: src/priceGenerator.c
-	@gcc src/priceGenerator.c $(FLAGS) $(LIBS) -o bin/priceGenerator
+$(PROPHET): $(OBJ)
+	@mkdir -p bin
+	@gcc $^ $(FLAGS) $(LIBS) -o $@
+
+$(PRICE): obj/priceGenerator.o
+	@mkdir -p bin
 	@mkdir -p prophetData
+	@gcc $^ $(FLAGS) $(LIBS) -o $@
+
+obj/%.o: src/%.c
+	@mkdir -p obj obj/banditAlgs
+	@gcc $(FLAGS) -c $< -o $@
 
 clean:
-	@rm bin/propheticBandits
-	@rm bin/priceGenerator
+	@rm -r bin
+	@rm -r obj

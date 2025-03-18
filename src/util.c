@@ -2,7 +2,7 @@
 #include <stdio.h>
 #include <stdlib.h>
 
-#include "util.h"
+#include <util.h>
 
 void initThreshold(Threshold *thres, uint32_t totalThresholds) {
   for (uint32_t th = 0; th < totalThresholds; th++) {

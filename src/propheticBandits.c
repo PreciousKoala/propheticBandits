@@ -17,6 +17,7 @@ void printHelp() {
          "    -t <integer>    Set the number of thresholds (default = 10).\n"
          "    -m <integer>    Set the number of maximum held items "
          "(default = 1).\n"
+         "    -a              Run all the available algorithms.\n"
          "    -g              Run the Greedy algorithm.\n"
          "    -e              Run the Epsilon Greedy algorithm.\n"
          "    -s              Run the Successive Elimination algorithm.\n"
@@ -33,13 +34,13 @@ int main(int argc, char **argv) {
 
   uint32_t totalThresholds = 10;
   uint32_t maxItems = 1;
-  Flag flag = {0, 0, 0, 0, 0};
+  Flag flag = {0, 0, 0, 0, 0, 0};
 
   int opt;
 
   opterr = 0;
 
-  while ((opt = getopt(argc, argv, ":hm:gesuUxt:")) != -1) {
+  while ((opt = getopt(argc, argv, ":hm:agesuUxt:")) != -1) {
     switch (opt) {
     case 'h':
       printHelp();
@@ -50,6 +51,8 @@ int main(int argc, char **argv) {
     case 'm':
       maxItems = atoi(optarg);
       break;
+    case 'a':
+      flag = (Flag){1, 1, 1, 1, 1, 1};
     case 'g':
       flag.greedyFlag = 1;
       break;

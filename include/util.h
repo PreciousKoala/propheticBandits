@@ -12,6 +12,11 @@ typedef struct flagStruct {
   uint8_t exp3Flag;
 } Flag;
 
+/**
+ * @typedef thresholdStruct
+ * @brief A struct that holds statistics for a threshold
+ *
+ */
 typedef struct thresholdStruct {
   // the placement of the threshold in [0,1]
   double threshold;

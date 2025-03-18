@@ -3,8 +3,8 @@
 #include <stdio.h>
 #include <stdlib.h>
 
-#include "banditAlgs.h"
-#include "util.h"
+#include <banditAlgs.h>
+#include <util.h>
 
 void ucb1(double *reward, double *totalGain, double *totalOpt,
           uint32_t totalThresholds, uint32_t maxItems, uint64_t totalRounds,

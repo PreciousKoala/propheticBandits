@@ -2,8 +2,8 @@
 #include <math.h>
 #include <time.h>
 
-#include "banditAlgs.h"
-#include "util.h"
+#include <banditAlgs.h>
+#include <util.h>
 
 void epsilonGreedy(double *reward, double *totalGain, double *totalOpt,
                    uint32_t totalThresholds, uint32_t maxItems,

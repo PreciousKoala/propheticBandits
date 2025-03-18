@@ -2,3 +2,5 @@ propheticBandits
 priceGenerator
 prophetData
 compile_commands.json
+obj
+bin
