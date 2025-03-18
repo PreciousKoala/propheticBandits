@@ -48,7 +48,6 @@ int main(int argc, char *argv[]) {
 
   char distLetter = 'u';
   uint8_t randomizeFlag = 0;
-  uint8_t stationaryMean = 0;
 
   double autoregressivePhi = 1;
   double sineFrequency = 1;
@@ -78,33 +77,26 @@ int main(int argc, char *argv[]) {
       break;
     case 'u':
       distLetter = 'u';
-      stationaryMean = 1;
       break;
     case 'g':
       distLetter = 'g';
-      stationaryMean = 1;
       break;
     case 'e':
       distLetter = 'e';
-      stationaryMean = 1;
       break;
     case 'b':
       distLetter = 'b';
-      stationaryMean = 1;
       break;
     case 'a':
       distLetter = 'a';
-      stationaryMean = 0;
       autoregressivePhi = atof(optarg);
       break;
     case 's':
       distLetter = 's';
-      stationaryMean = 0;
       sineFrequency = atof(optarg);
       break;
     case 'c':
       distLetter = 'c';
-      stationaryMean = 0;
       sineFrequency = atof(optarg);
       break;
     case 't':
@@ -114,12 +106,17 @@ int main(int argc, char *argv[]) {
       pricesPerRound = atoll(optarg);
       break;
     case '?':
-      if (optopt == 'a' || optopt == 't' || optopt == 'n')
+      if (optopt == 'a' || optopt == 's' || optopt == 'c' || optopt == 't' ||
+          optopt == 'n')
         fprintf(stderr, "Option -%c requires an argument.\n", optopt);
       break;
     default:
       abort();
     }
+  }
+
+  if (distLetter == 'a' || distLetter == 's' || distLetter == 'c') {
+    randomizeFlag = 0;
   }
 
   // Initialise gnu_rng variables for generating random values
@@ -131,9 +128,15 @@ int main(int argc, char *argv[]) {
   gsl_rng_set(r, time(NULL));
 
   char filename[256];
-  if (randomizeFlag && stationaryMean) {
+  if (randomizeFlag) {
     snprintf(filename, sizeof(filename), "prophetData/%crdataT%luN%lu.dat",
              distLetter, totalRounds, pricesPerRound);
+  } else if (distLetter == 'a') {
+    snprintf(filename, sizeof(filename), "prophetData/%cdataP%gT%luN%lu.dat",
+             distLetter, autoregressivePhi, totalRounds, pricesPerRound);
+  } else if (distLetter == 's' || distLetter == 'c') {
+    snprintf(filename, sizeof(filename), "prophetData/%cdataF%gT%luN%lu.dat",
+             distLetter, sineFrequency, totalRounds, pricesPerRound);
   } else {
     snprintf(filename, sizeof(filename), "prophetData/%cdataT%luN%lu.dat",
              distLetter, totalRounds, pricesPerRound);
@@ -244,7 +247,7 @@ int main(int argc, char *argv[]) {
       // The sinewave will complete <frequency> cycles throughout all the rounds
       double angularFreq =
           2 * M_PI * sineFrequency / (totalRounds * pricesPerRound);
-      double c = 7 * cbrt(sin(i * angularFreq)) + noise;
+      double c = 5 * cbrt(sin(i * angularFreq)) + noise;
       // printf("%lf\n", c);
       fwrite(&c, sizeof(c), 1, file);
     }
