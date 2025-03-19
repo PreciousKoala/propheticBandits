@@ -11,36 +11,40 @@
 #include <unistd.h>
 
 void printHelp() {
-  printf("Usage:\n"
-         "    # Only one option can be used at a time.\n"
-         "    # If more than one option is chosen, the program chooses the "
-         "last one to be declared.\n"
-         "    # If no option is chosen, the program chooses the uniform "
-         "distribution.\n\n"
-         "    priceGenerator [options] [-t <number of rounds>] [-n <prices "
-         "per round>]\n"
-         "    priceGenerator -h      # Display this help screen.\n\n"
-         "Options:\n"
-         "    -r                   Randomize distibution parameters for "
-         "options u, g, e, and b.\n"
-         "    -u                   Generate prices from the Uniform "
-         "Distribution from 0 to 1.\n"
-         "    -g                   Generate prices from the Gaussian "
-         "Distribution with mean 0 and sigma 1.\n"
-         "    -e                   Generate prices from the Exponential "
-         "Distribution with mean 1.\n"
-         "    -b                   Generate prices from the Bernoulli "
-         "Distribution with probability of 0.5.\n"
-         "    -a <phi>             Generate prices from an Autoregressive "
-         "Model of order 1:\n"
-         "                             f(n) = phi * f(n - 1) + error\n"
-         "    -s <frequency>       Generate prices from a wiggly sine wave:\n"
-         "                             f(x) = 3 * sin(x * frequency * 2 * pi / "
-         "(T * N)) + error\n"
-         "    -c <frequency>       Generate prices from a wiggly sine wave "
-         "with a steeper curve:\n"
-         "                             f(x) = 3 * sin(x * frequency * 2 * pi / "
-         "(T * N))^(1 / 3) + error\n");
+  printf(
+      "Usage:\n"
+      "    # Only one option can be used at a time.\n"
+      "    # If more than one option is chosen, the program chooses the "
+      "last one to be declared.\n"
+      "    # If no option is chosen, the program chooses the uniform "
+      "distribution.\n\n"
+      "    priceGenerator [options] [-t <number of rounds>] [-n <prices "
+      "per round>]\n"
+      "    priceGenerator -h      # Display this help screen.\n\n"
+      "Options:\n"
+      "    -r                   Randomize distibution parameters for "
+      "options u, g, e, and b.\n"
+      "    -u                   Generate prices from the Uniform "
+      "Distribution from 0 to 1.\n"
+      "    -g                   Generate prices from the Gaussian "
+      "Distribution with mean 0 and sigma 1.\n"
+      "    -e                   Generate prices from the Exponential "
+      "Distribution with mean 1.\n"
+      "    -b                   Generate prices from the Bernoulli "
+      "Distribution with probability of 0.5.\n"
+      "    -a <phi>             Generate prices from an Autoregressive "
+      "Model of order 1:\n"
+      "                             f(n) = phi * f(n - 1) + error\n"
+      "    -m <theta>           Generate prices from a Moving Average Model "
+      "of order 1:\n"
+      "                             f(n) =  error(t) + theta * error(t - 1)\n"
+      "    -s <frequency>       Generate prices from a wiggly sine wave:\n"
+      "                             f(x) = 3 * sin(x * frequency * 2 * pi / "
+      "(T * N)) + error\n"
+      "    -c <frequency>       Generate prices from a wiggly sine wave "
+      "with a steeper curve:\n"
+      "                             f(x) = 3 * sin(x * frequency * 2 * pi / "
+      "(T * N))^(1 / 3) + error\n");
 }
 
 int main(int argc, char *argv[]) {
@@ -53,6 +57,7 @@ int main(int argc, char *argv[]) {
   uint8_t randomizeFlag = 0;
 
   double autoregressivePhi = 1;
+  double movingAvgTheta = 1;
   double sineFrequency = 1;
 
   uint64_t totalRounds = 1000;
@@ -62,15 +67,11 @@ int main(int argc, char *argv[]) {
 
   opterr = 0;
 
-  // TODO: moving average model
-  //
   // TODO: import stock market prices
-  //
-  // TODO: find other good non-stationary models
   //
   // TODO: make bash script to automatically create all possible data combos
 
-  while ((opt = getopt(argc, argv, "hrugeba:s:c:t:n:")) != -1) {
+  while ((opt = getopt(argc, argv, "hrugeba:m:s:c:t:n:")) != -1) {
     switch (opt) {
     case 'h':
       printHelp();
@@ -93,6 +94,10 @@ int main(int argc, char *argv[]) {
     case 'a':
       distLetter = 'a';
       autoregressivePhi = atof(optarg);
+      break;
+    case 'm':
+      distLetter = 'm';
+      movingAvgTheta = atof(optarg);
       break;
     case 's':
       distLetter = 's';
@@ -118,7 +123,8 @@ int main(int argc, char *argv[]) {
     }
   }
 
-  if (distLetter == 'a' || distLetter == 's' || distLetter == 'c') {
+  if (distLetter == 'a' || distLetter == 'm' || distLetter == 's' ||
+      distLetter == 'c') {
     randomizeFlag = 0;
   }
 
@@ -143,7 +149,7 @@ int main(int argc, char *argv[]) {
     snprintf(filename, sizeof(filename), "prophetData/%cdataP%gT%luN%lu.dat",
              distLetter, autoregressivePhi, totalRounds, pricesPerRound);
   } else if (distLetter == 's' || distLetter == 'c') {
-    snprintf(filename, sizeof(filename), "prophetData/%cdataF%gT%luN%lu.dat",
+    snprintf(filename, sizeof(filename), "prophetData/%cdataP%gT%luN%lu.dat",
              distLetter, sineFrequency, totalRounds, pricesPerRound);
   } else {
     snprintf(filename, sizeof(filename), "prophetData/%cdataT%luN%lu.dat",
@@ -234,6 +240,17 @@ int main(int argc, char *argv[]) {
       prev = a;
       // printf("%lf\n", a);
       fwrite(&a, sizeof(a), 1, file);
+    }
+  }
+
+  if (distLetter == 'm') {
+    double prevNoise = 0;
+    for (uint64_t i = 0; i < totalRounds * pricesPerRound; i++) {
+      double noise = gsl_ran_gaussian(r, 1);
+      double m = noise + movingAvgTheta * prevNoise;
+      prevNoise = noise;
+      // printf("%lf\n", m);
+      fwrite(&m, sizeof(m), 1, file);
     }
   }
 
