@@ -91,9 +91,9 @@ void getBestHandPerc(uint64_t totalRounds, double *algBestHand,
   }
 }
 
-void plotAlgorithms(uint64_t totalRounds, double *totalOpt, double *greedy,
-                    double *eGreedy, double *succElim, double *ucb1,
-                    double *ucb2, double *exp3, Flag flag) {
+void plotAlgorithms(char *title, uint64_t totalRounds, double *totalOpt,
+                    double *greedy, double *eGreedy, double *succElim,
+                    double *ucb1, double *ucb2, double *exp3, Flag flag) {
   uint32_t step = 1;
   // bigger step if the dataset is bigger, makes plot way faster
   if (totalRounds > 10000) {
@@ -104,7 +104,9 @@ void plotAlgorithms(uint64_t totalRounds, double *totalOpt, double *greedy,
   if (!gnuplot) {
     exit(1);
   }
-  fprintf(gnuplot, "set title 'Average Regret Plot'\n");
+  fprintf(gnuplot, "set title '");
+  fprintf(gnuplot, "%s", title);
+  fprintf(gnuplot, "'\n");
   fprintf(gnuplot, "set xlabel 'Rounds'\n");
   fprintf(gnuplot, "set ylabel 'Regret'\n");
   fprintf(gnuplot, "set grid\n");

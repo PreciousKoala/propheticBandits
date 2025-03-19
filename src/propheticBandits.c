@@ -244,32 +244,35 @@ int main(int argc, char **argv) {
   }
 
   free(reward);
+  free(totalOpt);
 
   printf("Plotting best hand regret...\n");
-  plotAlgorithms(totalRounds, totalOpt, greedyAvgRegret, eGreedyAvgRegret,
-                 succElimAvgRegret, ucb1AvgRegret, ucb2AvgRegret, exp3AvgRegret,
-                 flag);
+  plotAlgorithms("Average Regret", totalRounds, totalOpt, greedyAvgRegret,
+                 eGreedyAvgRegret, succElimAvgRegret, ucb1AvgRegret,
+                 ucb2AvgRegret, exp3AvgRegret, flag);
 
-  plotAlgorithms(totalRounds, totalOpt, greedyBestHand, eGreedyBestHand,
-                 succElimBestHand, ucb1BestHand, ucb2BestHand, exp3BestHand, flag);
+  free(greedyAvgRegret);
+  free(eGreedyAvgRegret);
+  free(succElimAvgRegret);
+  free(ucb1AvgRegret);
+  free(ucb2AvgRegret);
+  free(exp3AvgRegret);
+
+  plotAlgorithms("Percentage of Best Hand Played", totalRounds, totalOpt,
+                 greedyBestHand, eGreedyBestHand, succElimBestHand,
+                 ucb1BestHand, ucb2BestHand, exp3BestHand, flag);
+
+  free(greedyBestHand);
+  free(eGreedyBestHand);
+  free(succElimBestHand);
+  free(ucb1BestHand);
+  free(ucb2BestHand);
+  free(exp3BestHand);
 
   // printf("Plotting optimal regret...\n");
   // plotAlgorithms(totalRounds, totalOpt, greedyGain, eGreedyGain,
   // succElimGain, ucb1Gain, ucb2Gain, exp3Gain, flag);
 
   // free(totalExtremaOpt);
-  free(totalOpt);
-  free(greedyAvgRegret);
-  free(greedyBestHand);
-  free(eGreedyAvgRegret);
-  free(eGreedyBestHand);
-  free(succElimAvgRegret);
-  free(succElimBestHand);
-  free(ucb1AvgRegret);
-  free(ucb1BestHand);
-  free(ucb2AvgRegret);
-  free(ucb2BestHand);
-  free(exp3AvgRegret);
-  free(exp3BestHand);
   return 0;
 }

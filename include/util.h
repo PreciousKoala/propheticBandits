@@ -106,6 +106,7 @@ void getBestHandPerc(uint64_t totalRounds, double *algBestHand,
 /**
  * @brief Plots the needed information per day for each algorithm using gnuplot
  *
+ * @param title The title that appears on the plot window
  * @param totalRounds The total number of rounds and the size of each array
  * @param totalOpt The array with the optimal gain an algorithm can achieve by
  * each round
@@ -114,8 +115,8 @@ void getBestHandPerc(uint64_t totalRounds, double *algBestHand,
  * @param flag The Flag struct that informs the program which algorithms have
  * been used
  */
-void plotAlgorithms(uint64_t totalRounds, double *totalOpt, double *greedy,
-                    double *eGreedy, double *succElim, double *ucb1,
-                    double *ucb2, double *exp3, Flag flag);
+void plotAlgorithms(char *title, uint64_t totalRounds, double *totalOpt,
+                    double *greedy, double *eGreedy, double *succElim,
+                    double *ucb1, double *ucb2, double *exp3, Flag flag);
 
 #endif
