@@ -159,65 +159,117 @@ int main(int argc, char **argv) {
 
   free(data);
 
-  double *greedyGain = malloc(totalRounds * sizeof(double));
+  double *greedyAvgRegret = malloc(totalRounds * sizeof(double));
+  double *greedyBestHand = malloc(totalRounds * sizeof(double));
   if (flag.greedyFlag) {
+    double *greedyGain = malloc(totalRounds * sizeof(double));
+
     printf("Calculating Greedy...\n");
     greedy(reward, greedyGain, totalOpt, totalThresholds, maxItems, totalRounds,
            pricesPerRound);
+
+    getAvgRegret(totalRounds, greedyAvgRegret, totalOpt, greedyGain);
+    getBestHandPerc(totalRounds, greedyBestHand, totalOpt, greedyGain);
+    free(greedyGain);
   }
 
-  double *eGreedyGain = malloc(totalRounds * sizeof(double));
+  double *eGreedyAvgRegret = malloc(totalRounds * sizeof(double));
+  double *eGreedyBestHand = malloc(totalRounds * sizeof(double));
   if (flag.eGreedyFlag) {
+    double *eGreedyGain = malloc(totalRounds * sizeof(double));
+
     printf("Calculating Epsilon-Greedy...\n");
     epsilonGreedy(reward, eGreedyGain, totalOpt, totalThresholds, maxItems,
                   totalRounds, pricesPerRound);
+
+    getAvgRegret(totalRounds, eGreedyAvgRegret, totalOpt, eGreedyGain);
+    getBestHandPerc(totalRounds, eGreedyBestHand, totalOpt, eGreedyGain);
+    free(eGreedyGain);
   }
 
-  double *succElimGain = malloc(totalRounds * sizeof(double));
+  double *succElimAvgRegret = malloc(totalRounds * sizeof(double));
+  double *succElimBestHand = malloc(totalRounds * sizeof(double));
   if (flag.succElimFlag) {
+    double *succElimGain = malloc(totalRounds * sizeof(double));
+
     printf("Calculating Successive Elimination...\n");
     succElim(reward, succElimGain, totalOpt, totalThresholds, maxItems,
              totalRounds, pricesPerRound);
+
+    getAvgRegret(totalRounds, succElimAvgRegret, totalOpt, succElimGain);
+    getBestHandPerc(totalRounds, succElimBestHand, totalOpt, succElimGain);
+    free(succElimGain);
   }
 
-  double *ucb1Gain = malloc(totalRounds * sizeof(double));
+  double *ucb1AvgRegret = malloc(totalRounds * sizeof(double));
+  double *ucb1BestHand = malloc(totalRounds * sizeof(double));
   if (flag.ucb1Flag) {
+    double *ucb1Gain = malloc(totalRounds * sizeof(double));
+
     printf("Calculating UCB1...\n");
     ucb1(reward, ucb1Gain, totalOpt, totalThresholds, maxItems, totalRounds,
          pricesPerRound);
+
+    getAvgRegret(totalRounds, ucb1AvgRegret, totalOpt, ucb1Gain);
+    getBestHandPerc(totalRounds, ucb1BestHand, totalOpt, ucb1Gain);
+    free(ucb1Gain);
   }
 
-  double *ucb2Gain = malloc(totalRounds * sizeof(double));
+  double *ucb2AvgRegret = malloc(totalRounds * sizeof(double));
+  double *ucb2BestHand = malloc(totalRounds * sizeof(double));
   if (flag.ucb2Flag) {
+    double *ucb2Gain = malloc(totalRounds * sizeof(double));
+
     printf("Calculating UCB2...\n");
     ucb2(reward, ucb2Gain, totalOpt, totalThresholds, maxItems, totalRounds,
          pricesPerRound);
+
+    getAvgRegret(totalRounds, ucb2AvgRegret, totalOpt, ucb2Gain);
+    getBestHandPerc(totalRounds, ucb2BestHand, totalOpt, ucb2Gain);
+    free(ucb2Gain);
   }
 
-  double *exp3Gain = malloc(totalRounds * sizeof(double));
+  double *exp3AvgRegret = malloc(totalRounds * sizeof(double));
+  double *exp3BestHand = malloc(totalRounds * sizeof(double));
   if (flag.exp3Flag) {
+    double *exp3Gain = malloc(totalRounds * sizeof(double));
+
     printf("Calculating EXP3...\n");
     exp3(reward, exp3Gain, totalOpt, totalThresholds, maxItems, totalRounds,
          pricesPerRound);
+
+    getAvgRegret(totalRounds, exp3AvgRegret, totalOpt, exp3Gain);
+    getBestHandPerc(totalRounds, exp3BestHand, totalOpt, exp3Gain);
+    free(exp3Gain);
   }
 
   free(reward);
 
   printf("Plotting best hand regret...\n");
-  plotRegret(totalRounds, totalOpt, greedyGain, eGreedyGain, succElimGain,
-             ucb1Gain, ucb2Gain, exp3Gain, flag);
+  plotAlgorithms(totalRounds, totalOpt, greedyAvgRegret, eGreedyAvgRegret,
+                 succElimAvgRegret, ucb1AvgRegret, ucb2AvgRegret, exp3AvgRegret,
+                 flag);
+
+  plotAlgorithms(totalRounds, totalOpt, greedyBestHand, eGreedyBestHand,
+                 succElimBestHand, ucb1BestHand, ucb2BestHand, exp3BestHand, flag);
 
   // printf("Plotting optimal regret...\n");
-  // plotRegret(totalRounds, totalOpt, greedyGain, eGreedyGain, succElimGain,
-  // ucb1Gain, ucb2Gain, exp3Gain, flag);
+  // plotAlgorithms(totalRounds, totalOpt, greedyGain, eGreedyGain,
+  // succElimGain, ucb1Gain, ucb2Gain, exp3Gain, flag);
 
   // free(totalExtremaOpt);
   free(totalOpt);
-  free(greedyGain);
-  free(eGreedyGain);
-  free(succElimGain);
-  free(ucb1Gain);
-  free(ucb2Gain);
-  free(exp3Gain);
+  free(greedyAvgRegret);
+  free(greedyBestHand);
+  free(eGreedyAvgRegret);
+  free(eGreedyBestHand);
+  free(succElimAvgRegret);
+  free(succElimBestHand);
+  free(ucb1AvgRegret);
+  free(ucb1BestHand);
+  free(ucb2AvgRegret);
+  free(ucb2BestHand);
+  free(exp3AvgRegret);
+  free(exp3BestHand);
   return 0;
 }

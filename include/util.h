@@ -77,18 +77,45 @@ void calculateRewards(double *reward, double *data, uint64_t totalRounds,
                       uint32_t maxItems);
 
 /**
- * @brief Plots the average regret per day for each algorithm using gnuplot
+ * @brief Calculates the average regret pre round for a specific algorithm
+ *
+ * @param totalRounds The total number of rounds
+ * @param algAvgRegret The array that saves the average regret
+ * @param totalOpt The array with the optimal gain an algorithm can achieve by
+ * each round
+ * @param algGain The array with the gain an algorithm has achieved by each
+ * round
+ */
+void getAvgRegret(uint64_t totalRounds, double *algAvgRegret, double *totalOpt,
+                  double *algGain);
+
+/**
+ * @brief Calculates per day the percentage of the best hands a specific
+ * algorithm has chosen
+ *
+ * @param totalRounds The total number of rounds
+ * @param algAvgRegret The array that saves the percentage each round
+ * @param totalOpt The array with the optimal gain an algorithm can achieve by
+ * each round
+ * @param algGain The array with the gain an algorithm has achieved by each
+ * round
+ */
+void getBestHandPerc(uint64_t totalRounds, double *algBestHand,
+                     double *totalOpt, double *algGain);
+
+/**
+ * @brief Plots the needed information per day for each algorithm using gnuplot
  *
  * @param totalRounds The total number of rounds and the size of each array
  * @param totalOpt The array with the optimal gain an algorithm can achieve by
  * each round
- * @param xGain The array that holds the total gain x algorithm has achieves by
- * each round
+ * @param [greedy, eGreedy, succElim, ucb1, ucb2, exp3] The array that holds the
+ * information to be plotted for each algorithms for each round
  * @param flag The Flag struct that informs the program which algorithms have
  * been used
  */
-void plotRegret(uint64_t totalRounds, double *totalOpt, double *greedyGain,
-                double *eGreedyGain, double *succElimGain, double *ucb1Gain,
-                double *ucb2Gain, double *exp3Gain, Flag flag);
+void plotAlgorithms(uint64_t totalRounds, double *totalOpt, double *greedy,
+                    double *eGreedy, double *succElim, double *ucb1,
+                    double *ucb2, double *exp3, Flag flag);
 
 #endif
