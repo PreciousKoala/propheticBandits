@@ -4,12 +4,12 @@
 #include <stdint.h>
 
 typedef struct flagStruct {
-  uint8_t greedyFlag;
-  uint8_t eGreedyFlag;
-  uint8_t succElimFlag;
-  uint8_t ucb1Flag;
-  uint8_t ucb2Flag;
-  uint8_t exp3Flag;
+  uint8_t greedy;
+  uint8_t eGreedy;
+  uint8_t succElim;
+  uint8_t ucb1;
+  uint8_t ucb2;
+  uint8_t exp3;
 } Flag;
 
 /**

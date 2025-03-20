@@ -54,22 +54,22 @@ int main(int argc, char **argv) {
     case 'a':
       flag = (Flag){1, 1, 1, 1, 1, 1};
     case 'g':
-      flag.greedyFlag = 1;
+      flag.greedy = 1;
       break;
     case 'e':
-      flag.eGreedyFlag = 1;
+      flag.eGreedy = 1;
       break;
     case 's':
-      flag.succElimFlag = 1;
+      flag.succElim = 1;
       break;
     case 'u':
-      flag.ucb1Flag = 1;
+      flag.ucb1 = 1;
       break;
     case 'U':
-      flag.ucb2Flag = 1;
+      flag.ucb2 = 1;
       break;
     case 'x':
-      flag.exp3Flag = 1;
+      flag.exp3 = 1;
       break;
     case '?':
       if (optopt == 'm' || optopt == 't')
@@ -103,12 +103,18 @@ int main(int argc, char **argv) {
     printf("Importing file...\n");
 
     // first 2 values are 64bit integers
-    fread(&totalRounds, sizeof(uint64_t), 1, file);
-    fread(&pricesPerRound, sizeof(uint64_t), 1, file);
+    if (!fread(&totalRounds, sizeof(uint64_t), 1, file)) {
+      return 1;
+    }
+    if (!fread(&pricesPerRound, sizeof(uint64_t), 1, file)) {
+      return 1;
+    }
 
     // allocate memory and get the actual data
     data = malloc(totalRounds * pricesPerRound * sizeof(double));
-    fread(data, sizeof(double), totalRounds * pricesPerRound, file);
+    if (!fread(data, sizeof(double), totalRounds * pricesPerRound, file)) {
+      return 1;
+    }
 
     fclose(file);
   } else {
@@ -161,7 +167,7 @@ int main(int argc, char **argv) {
 
   double *greedyAvgRegret = malloc(totalRounds * sizeof(double));
   double *greedyBestHand = malloc(totalRounds * sizeof(double));
-  if (flag.greedyFlag) {
+  if (flag.greedy) {
     double *greedyGain = malloc(totalRounds * sizeof(double));
 
     printf("Calculating Greedy...\n");
@@ -175,7 +181,7 @@ int main(int argc, char **argv) {
 
   double *eGreedyAvgRegret = malloc(totalRounds * sizeof(double));
   double *eGreedyBestHand = malloc(totalRounds * sizeof(double));
-  if (flag.eGreedyFlag) {
+  if (flag.eGreedy) {
     double *eGreedyGain = malloc(totalRounds * sizeof(double));
 
     printf("Calculating Epsilon-Greedy...\n");
@@ -189,7 +195,7 @@ int main(int argc, char **argv) {
 
   double *succElimAvgRegret = malloc(totalRounds * sizeof(double));
   double *succElimBestHand = malloc(totalRounds * sizeof(double));
-  if (flag.succElimFlag) {
+  if (flag.succElim) {
     double *succElimGain = malloc(totalRounds * sizeof(double));
 
     printf("Calculating Successive Elimination...\n");
@@ -203,7 +209,7 @@ int main(int argc, char **argv) {
 
   double *ucb1AvgRegret = malloc(totalRounds * sizeof(double));
   double *ucb1BestHand = malloc(totalRounds * sizeof(double));
-  if (flag.ucb1Flag) {
+  if (flag.ucb1) {
     double *ucb1Gain = malloc(totalRounds * sizeof(double));
 
     printf("Calculating UCB1...\n");
@@ -217,7 +223,7 @@ int main(int argc, char **argv) {
 
   double *ucb2AvgRegret = malloc(totalRounds * sizeof(double));
   double *ucb2BestHand = malloc(totalRounds * sizeof(double));
-  if (flag.ucb2Flag) {
+  if (flag.ucb2) {
     double *ucb2Gain = malloc(totalRounds * sizeof(double));
 
     printf("Calculating UCB2...\n");
@@ -231,7 +237,7 @@ int main(int argc, char **argv) {
 
   double *exp3AvgRegret = malloc(totalRounds * sizeof(double));
   double *exp3BestHand = malloc(totalRounds * sizeof(double));
-  if (flag.exp3Flag) {
+  if (flag.exp3) {
     double *exp3Gain = malloc(totalRounds * sizeof(double));
 
     printf("Calculating EXP3...\n");
@@ -246,10 +252,15 @@ int main(int argc, char **argv) {
   free(reward);
   free(totalOpt);
 
-  printf("Plotting best hand regret...\n");
-  plotAlgorithms("Average Regret", totalRounds, greedyAvgRegret,
-                 eGreedyAvgRegret, succElimAvgRegret, ucb1AvgRegret,
-                 ucb2AvgRegret, exp3AvgRegret, flag);
+  uint8_t noAlgs = !(flag.greedy || flag.eGreedy || flag.succElim ||
+                     flag.ucb1 || flag.ucb2 || flag.exp3);
+
+  if (!noAlgs) {
+    printf("Plotting best hand regret...\n");
+    plotAlgorithms("Average Regret", totalRounds, greedyAvgRegret,
+                   eGreedyAvgRegret, succElimAvgRegret, ucb1AvgRegret,
+                   ucb2AvgRegret, exp3AvgRegret, flag);
+  }
 
   free(greedyAvgRegret);
   free(eGreedyAvgRegret);
@@ -258,9 +269,11 @@ int main(int argc, char **argv) {
   free(ucb2AvgRegret);
   free(exp3AvgRegret);
 
-  plotAlgorithms("Percentage of Best Hand Played", totalRounds, greedyBestHand,
-                 eGreedyBestHand, succElimBestHand, ucb1BestHand, ucb2BestHand,
-                 exp3BestHand, flag);
+  if (!noAlgs) {
+    plotAlgorithms("Percentage of Best Hand Played", totalRounds,
+                   greedyBestHand, eGreedyBestHand, succElimBestHand,
+                   ucb1BestHand, ucb2BestHand, exp3BestHand, flag);
+  }
 
   free(greedyBestHand);
   free(eGreedyBestHand);

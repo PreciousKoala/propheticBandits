@@ -114,74 +114,74 @@ void plotAlgorithms(char *title, uint64_t totalRounds, double *greedy,
 
   fprintf(gnuplot, "plot ");
 
-  if (flag.greedyFlag) {
+  if (flag.greedy) {
     fprintf(gnuplot, "'-' using 1:2 with lines lt rgb 'orange' lw 2 title "
                      "'Greedy', ");
   }
 
-  if (flag.eGreedyFlag) {
+  if (flag.eGreedy) {
     fprintf(gnuplot, "'-' using 1:2 with lines lt rgb 'red' lw 2 title "
                      "'eGreedy', ");
   }
 
-  if (flag.succElimFlag) {
+  if (flag.succElim) {
     fprintf(gnuplot, "'-' using 1:2 with lines lt rgb 'cyan' lw 2 title "
                      "'Successive Elimination', ");
   }
 
-  if (flag.ucb1Flag) {
+  if (flag.ucb1) {
     fprintf(gnuplot,
             "'-' using 1:2 with lines lt rgb 'blue' lw 2 title 'UCB1', ");
   }
 
-  if (flag.ucb2Flag) {
+  if (flag.ucb2) {
     fprintf(gnuplot,
             "'-' using 1:2 with lines lt rgb 'purple' lw 2 title 'UCB2', ");
   }
 
-  if (flag.exp3Flag) {
+  if (flag.exp3) {
     fprintf(gnuplot,
             "'-' using 1:2 with lines lt rgb 'green' lw 2 title 'EXP3', ");
   }
 
   fprintf(gnuplot, "\n");
 
-  if (flag.greedyFlag) {
+  if (flag.greedy) {
     for (int t = 0; t < totalRounds; t += step) {
       fprintf(gnuplot, "%d %lf\n", t, greedy[t]);
     }
     fprintf(gnuplot, "e\n");
   }
 
-  if (flag.eGreedyFlag) {
+  if (flag.eGreedy) {
     for (int t = 0; t < totalRounds; t += step) {
       fprintf(gnuplot, "%d %lf\n", t, eGreedy[t]);
     }
     fprintf(gnuplot, "e\n");
   }
 
-  if (flag.succElimFlag) {
+  if (flag.succElim) {
     for (int t = 0; t < totalRounds; t += step) {
       fprintf(gnuplot, "%d %lf\n", t, succElim[t]);
     }
     fprintf(gnuplot, "e\n");
   }
 
-  if (flag.ucb1Flag) {
+  if (flag.ucb1) {
     for (int t = 0; t < totalRounds; t += step) {
       fprintf(gnuplot, "%d %lf\n", t, ucb1[t]);
     }
     fprintf(gnuplot, "e\n");
   }
 
-  if (flag.ucb2Flag) {
+  if (flag.ucb2) {
     for (int t = 0; t < totalRounds; t += step) {
       fprintf(gnuplot, "%d %lf\n", t, ucb2[t]);
     }
     fprintf(gnuplot, "e\n");
   }
 
-  if (flag.exp3Flag) {
+  if (flag.exp3) {
     for (int t = 0; t < totalRounds; t += step) {
       fprintf(gnuplot, "%d %lf\n", t, exp3[t]);
     }
