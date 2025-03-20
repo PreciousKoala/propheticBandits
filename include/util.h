@@ -108,15 +108,13 @@ void getBestHandPerc(uint64_t totalRounds, double *algBestHand,
  *
  * @param title The title that appears on the plot window
  * @param totalRounds The total number of rounds and the size of each array
- * @param totalOpt The array with the optimal gain an algorithm can achieve by
- * each round
  * @param [greedy, eGreedy, succElim, ucb1, ucb2, exp3] The array that holds the
  * information to be plotted for each algorithms for each round
  * @param flag The Flag struct that informs the program which algorithms have
  * been used
  */
-void plotAlgorithms(char *title, uint64_t totalRounds, double *totalOpt,
-                    double *greedy, double *eGreedy, double *succElim,
-                    double *ucb1, double *ucb2, double *exp3, Flag flag);
+void plotAlgorithms(char *title, uint64_t totalRounds, double *greedy,
+                    double *eGreedy, double *succElim, double *ucb1,
+                    double *ucb2, double *exp3, Flag flag);
 
 #endif

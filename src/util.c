@@ -87,13 +87,13 @@ void getBestHandPerc(uint64_t totalRounds, double *algBestHand,
   }
 
   for (uint64_t t = 1; t < totalRounds; t++) {
-    algBestHand[t] = algBestHand[t] / (t + 1);
+    algBestHand[t] = 100 * algBestHand[t] / (t + 1);
   }
 }
 
-void plotAlgorithms(char *title, uint64_t totalRounds, double *totalOpt,
-                    double *greedy, double *eGreedy, double *succElim,
-                    double *ucb1, double *ucb2, double *exp3, Flag flag) {
+void plotAlgorithms(char *title, uint64_t totalRounds, double *greedy,
+                    double *eGreedy, double *succElim, double *ucb1,
+                    double *ucb2, double *exp3, Flag flag) {
   uint32_t step = 1;
   // bigger step if the dataset is bigger, makes plot way faster
   if (totalRounds > 10000) {

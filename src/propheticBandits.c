@@ -247,7 +247,7 @@ int main(int argc, char **argv) {
   free(totalOpt);
 
   printf("Plotting best hand regret...\n");
-  plotAlgorithms("Average Regret", totalRounds, totalOpt, greedyAvgRegret,
+  plotAlgorithms("Average Regret", totalRounds, greedyAvgRegret,
                  eGreedyAvgRegret, succElimAvgRegret, ucb1AvgRegret,
                  ucb2AvgRegret, exp3AvgRegret, flag);
 
@@ -258,9 +258,9 @@ int main(int argc, char **argv) {
   free(ucb2AvgRegret);
   free(exp3AvgRegret);
 
-  plotAlgorithms("Percentage of Best Hand Played", totalRounds, totalOpt,
-                 greedyBestHand, eGreedyBestHand, succElimBestHand,
-                 ucb1BestHand, ucb2BestHand, exp3BestHand, flag);
+  plotAlgorithms("Percentage of Best Hand Played", totalRounds, greedyBestHand,
+                 eGreedyBestHand, succElimBestHand, ucb1BestHand, ucb2BestHand,
+                 exp3BestHand, flag);
 
   free(greedyBestHand);
   free(eGreedyBestHand);
