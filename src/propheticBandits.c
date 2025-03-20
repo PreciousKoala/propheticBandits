@@ -110,9 +110,16 @@ int main(int argc, char **argv) {
       return 1;
     }
 
+    if (pricesPerRound <= 2){
+      printf("Error: Program does not support 2 prices per round\n");
+      return 1;
+    }
+
     // allocate memory and get the actual data
     data = malloc(totalRounds * pricesPerRound * sizeof(double));
     if (!fread(data, sizeof(double), totalRounds * pricesPerRound, file)) {
+      printf("Error while importing file");
+      free(data);
       return 1;
     }
 
