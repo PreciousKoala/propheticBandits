@@ -10,7 +10,7 @@
 
 void printHelp() {
   printf("Usage:\n"
-         "    propheticBandits [-geuUx] [-m <integer>] [-t <integer>] "
+         "    propheticBandits [options] [-m <integer>] [-t <integer>] "
          "<file>\n"
          "    propheticBandits -h      # Display this help screen.\n\n"
          "Options:\n"
@@ -104,13 +104,15 @@ int main(int argc, char **argv) {
 
     // first 2 values are 64bit integers
     if (!fread(&totalRounds, sizeof(uint64_t), 1, file)) {
+      printf("Error while importing file");
       return 1;
     }
     if (!fread(&pricesPerRound, sizeof(uint64_t), 1, file)) {
+      printf("Error while importing file");
       return 1;
     }
 
-    if (pricesPerRound <= 2){
+    if (pricesPerRound <= 2) {
       printf("Error: Program does not support 2 prices per round\n");
       return 1;
     }

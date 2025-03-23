@@ -39,11 +39,11 @@ void printHelp() {
       "of order 1:\n"
       "                             f(n) =  error(t) + theta * error(t - 1)\n"
       "    -s <frequency>       Generate prices from a wiggly sine wave:\n"
-      "                             f(x) = 3 * sin(x * frequency * 2 * pi / "
+      "                             f(x) = 5 * sin(x * frequency * 2 * pi / "
       "(T * N)) + error\n"
       "    -c <frequency>       Generate prices from a wiggly sine wave "
       "with a steeper curve:\n"
-      "                             f(x) = 3 * sin(x * frequency * 2 * pi / "
+      "                             f(x) = 5 * sin(x * frequency * 2 * pi / "
       "(T * N))^(1 / 3) + error\n");
 }
 
