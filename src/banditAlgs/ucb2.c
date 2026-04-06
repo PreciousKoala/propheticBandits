@@ -47,7 +47,6 @@ void ucb2(double *reward, double *totalGain, double *avgThreshold, double *total
 
     uint64_t t = totalThresholds;
     while (t < totalRounds) {
-        // TODO: find alpha that minimizes regret
         double alpha = 0.001; //(double)1 / (t + 1);
         double max = -INFINITY;
         chosenTh = 0;

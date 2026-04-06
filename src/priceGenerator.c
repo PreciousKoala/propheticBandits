@@ -38,11 +38,11 @@ void printHelp() {
            "of order 1:\n"
            "                             f(n) =  error(t) + theta * error(t - 1)\n"
            "    -s <frequency>       Generate prices from a wiggly cosine wave:\n"
-           "                             f(x) = 5 * sin(x * frequency * 2 * pi / "
+           "                             f(x) = 5 * cos(x * frequency * 2 * pi / "
            "(2 * T * N)) + error\n"
            "    -c <frequency>       Generate prices from a wiggly cosine wave "
            "with a steeper curve:\n"
-           "                             f(x) = 5 * cosin(x * frequency * 2 * pi / "
+           "                             f(x) = 5 * cos(x * frequency * 2 * pi / "
            "(2 * T * N))^(1 / 3) + error\n");
 }
 
@@ -250,8 +250,8 @@ int main(int argc, char *argv[]) {
         for (uint64_t i = 0; i < totalRounds * pricesPerRound; i++) {
             double noise = gsl_ran_gaussian(r, 1);
             // The sine wave will complete <frequency> cycles throughout all the rounds
-            double angularFreq = 2 * M_PI * sineFrequency / (double) (2 * totalRounds * pricesPerRound);
-            double s = 5 * sin((double) i * angularFreq + M_PI_2) + noise;
+            double angularFreq = M_PI * sineFrequency / (double) (totalRounds * pricesPerRound);
+            double s = 5 * cos((double) i * angularFreq) + noise;
             // printf("%lf\n", s);
             fwrite(&s, sizeof(s), 1, file);
         }
@@ -261,8 +261,8 @@ int main(int argc, char *argv[]) {
         for (uint64_t i = 0; i < totalRounds * pricesPerRound; i++) {
             double noise = gsl_ran_gaussian(r, 1);
             // The sine wave will complete <frequency> cycles throughout all the rounds
-            double angularFreq = 2 * M_PI * sineFrequency / (double) (2 * totalRounds * pricesPerRound);
-            double c = 5 * cbrt(sin((double) i * angularFreq + M_PI_2)) + noise;
+            double angularFreq = M_PI * sineFrequency / (double) (totalRounds * pricesPerRound);
+            double c = 5 * cbrt(cos((double) i * angularFreq)) + noise;
             // printf("%lf\n", c);
             fwrite(&c, sizeof(c), 1, file);
         }

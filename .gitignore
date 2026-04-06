@@ -4,3 +4,6 @@ prophetData
 compile_commands.json
 obj
 bin
+!/src/.idea/
+!/.clang-format
+!/src/.idea/

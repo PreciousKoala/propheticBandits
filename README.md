@@ -34,20 +34,20 @@ priceGenerator [options] -t [number of rounds] -n [prices per round]
 
 **Options**
 
-| Flag | Use | Equation |
-| ---- | --- | -------- |
-| -h | Displays a help screen |
-| -t <number of rounds> | Specifies the total number of rounds (default = 1000) |
-| -n <prices per round> | Specifies the number of prices per round (default = 10) |
-| -u | Generates the prices from a Uniform Distribution | $X \sim U(0,1)$ |
-| -g | Generates the prices from a Normal Distribution | $X \sim N(0,1)$ |
-| -e | Generates the prices from an Exponential Distribution | $X \sim Exp(1)$ |
-| -b | Generates the prices from a Bernoulli Distribution | $X \sim Bernoulli(0.5)$ |
-| -r | For any above distribution $F$, each round some gaussian noise is added to its parameter(s) $p$ | $X_{t} \sim F(p_{t-1} + \epsilon_{t})$ |
-| -a <phi> | Generates prices from an Autoregressive Model of order 1 | $X_{t} = \phi \cdot X_{t-1} + \epsilon_{t}$
-| -m <theta> | Generates prices from a Moving Average Model of order 1 | $X_{t} = \epsilon_{t} + \theta \cdot \epsilon_{t-1}$ |
-| -s <frequency> | Generates prices from a sine wave | $\large X_{t} = 5 \cdot \sin\left(\frac{2\pi \cdot t \cdot frequency}{T \cdot N}\right) + \epsilon_{t}$ |
-| -c <frequency> | Generates prices from a sine wave with a steeper curve | $\large X_{t} = 5 \cdot \sqrt[3]{\sin\left(\frac{2\pi \cdot t \cdot frequency}{T \cdot N}\right)} + \epsilon_{t}$ |
+| Flag | Use                                                                                             | Equation                                                                                                    |
+| ---- |-------------------------------------------------------------------------------------------------|-------------------------------------------------------------------------------------------------------------|
+| -h | Displays a help screen                                                                          |
+| -t <number of rounds> | Specifies the total number of rounds (default = 1000)                                           |
+| -n <prices per round> | Specifies the number of prices per round (default = 10)                                         |
+| -u | Generates the prices from a Uniform Distribution                                                | $X \sim U(0,1)$                                                                                             |
+| -g | Generates the prices from a Normal Distribution                                                 | $X \sim N(0,1)$                                                                                             |
+| -e | Generates the prices from an Exponential Distribution                                           | $X \sim Exp(1)$                                                                                             |
+| -b | Generates the prices from a Bernoulli Distribution                                              | $X \sim Bernoulli(0.5)$                                                                                     |
+| -r | For any above distribution $F$, each round some gaussian noise is added to its parameter(s) $p$ | $X_{t} \sim F(p_{t-1} + \epsilon_{t})$                                                                      |
+| -a <phi> | Generates prices from an Autoregressive Model of order 1                                        | $X_{t} = \phi \cdot X_{t-1} + \epsilon_{t}$                                                                 
+| -m <theta> | Generates prices from a Moving Average Model of order 1                                         | $X_{t} = \epsilon_{t} + \theta \cdot \epsilon_{t-1}$                                                        |
+| -s <frequency> | Generates prices from a cosine wave                                                             | $\large X_{t} = 5 \cdot \cos\left(\frac{\pi \cdot t \cdot freq}{T \cdot N}\right) + \epsilon_{t}$           |
+| -c <frequency> | Generates prices from a cosine wave with a steeper curve                                        | $\large X_{t} = 5 \cdot \sqrt[3]{\cos\left(\frac{\pi \cdot t \cdot freq}{T \cdot N}\right)} + \epsilon_{t}$ |
 
 If more than one distribution is chosen, the program generates from the last one that was defined.
 
