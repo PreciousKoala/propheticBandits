@@ -4,12 +4,12 @@
 #include <stdint.h>
 
 typedef struct flagStruct {
-  uint8_t greedy;
-  uint8_t eGreedy;
-  uint8_t succElim;
-  uint8_t ucb1;
-  uint8_t ucb2;
-  uint8_t exp3;
+    uint8_t greedy;
+    uint8_t eGreedy;
+    uint8_t succElim;
+    uint8_t ucb1;
+    uint8_t ucb2;
+    uint8_t exp3;
 } Flag;
 
 /**
@@ -18,14 +18,14 @@ typedef struct flagStruct {
  *
  */
 typedef struct thresholdStruct {
-  // the placement of the threshold in [0,1]
-  double threshold;
-  // how much money the threshold has made
-  double rewardSum;
-  // how many times the threshold has been picked
-  uint64_t timesChosen;
-  // how much money on average the threshold has made
-  double avgReward;
+    // the placement of the threshold in [0,1]
+    double threshold;
+    // how much money the threshold has made
+    double rewardSum;
+    // how many times the threshold has been picked
+    uint64_t timesChosen;
+    // how much money on average the threshold has made
+    double avgReward;
 } Threshold;
 
 /**
@@ -44,11 +44,12 @@ void initThreshold(Threshold *thres, uint32_t totalThresholds);
  * @param th The chosen threshold
  * @param totalThresholds The size of the threshold array
  * @param reward The array with all the possible rewards
+ * @param avgThreshold The array that holds the average chosen threshold of each round
  * @param totalGain The array that holds the total gain up to the current round
  * @param round The current round
  */
-void runRound(Threshold *thres, uint32_t th, uint32_t totalThresholds,
-              double *reward, double *totalGain, uint64_t round);
+void runRound(Threshold *thres, uint32_t th, uint32_t totalThresholds, double *reward, double *avgThreshold,
+              double *totalGain, uint64_t round);
 
 /**
  * @brief Normalizes a 2D array represented in 1D in [0,1]
@@ -59,8 +60,7 @@ void runRound(Threshold *thres, uint32_t th, uint32_t totalThresholds,
  * @param totalRounds The total number of rounds
  * @param pricesPerRound The total number of prices each round
  */
-void normalizePrices(double min, double max, double *data, uint64_t totalRounds,
-                     uint64_t pricesPerRound);
+void normalizePrices(double min, double max, double *data, uint64_t totalRounds, uint64_t pricesPerRound);
 
 /**
  * @brief Calculates the reward for each threshold, for each day
@@ -70,11 +70,9 @@ void normalizePrices(double min, double max, double *data, uint64_t totalRounds,
  * @param totalRounds The total number of rounds T
  * @param pricesPerRound The total number of prices per round N
  * @param totalThresholds The total number of thresholds K
- * @param maxItems The maximum number of items the algorithm can hold
  */
-void calculateRewards(double *reward, double *data, uint64_t totalRounds,
-                      uint64_t pricesPerRound, uint32_t totalThresholds,
-                      uint32_t maxItems);
+void calculateRewards(double *reward, double *data, uint64_t totalRounds, uint64_t pricesPerRound,
+                      uint32_t totalThresholds);
 
 /**
  * @brief Calculates the average regret pre round for a specific algorithm
@@ -86,35 +84,30 @@ void calculateRewards(double *reward, double *data, uint64_t totalRounds,
  * @param algGain The array with the gain an algorithm has achieved by each
  * round
  */
-void getAvgRegret(uint64_t totalRounds, double *algAvgRegret, double *totalOpt,
-                  double *algGain);
+void getAvgRegret(uint64_t totalRounds, double *algAvgRegret, double *totalOpt, double *algGain);
 
 /**
- * @brief Calculates per day the percentage of the best hands a specific
- * algorithm has chosen
+ * @brief Calculates per day the average distance from the best threshold
  *
  * @param totalRounds The total number of rounds
- * @param algAvgRegret The array that saves the percentage each round
- * @param totalOpt The array with the optimal gain an algorithm can achieve by
- * each round
- * @param algGain The array with the gain an algorithm has achieved by each
- * round
+ * @param algThresholdDist The array that saves the distance each round
+ * @param bestAvgThreshold The array with the best average threshold of each round
+ * @param algAvgThreshold The array with the average threshold chosen each round
  */
-void getBestHandPerc(uint64_t totalRounds, double *algBestHand,
-                     double *totalOpt, double *algGain);
+void getBestHandDistance(uint64_t totalRounds, double *algThresholdDist, double *bestAvgThreshold,
+                         double *algAvgThreshold);
 
 /**
  * @brief Plots the needed information per day for each algorithm using gnuplot
  *
- * @param title The title that appears on the plot window
+ * @param ylabel The title that appears on the plot window
  * @param totalRounds The total number of rounds and the size of each array
  * @param [greedy, eGreedy, succElim, ucb1, ucb2, exp3] The array that holds the
- * information to be plotted for each algorithms for each round
+ * information to be plotted for each algorithm for each round
  * @param flag The Flag struct that informs the program which algorithms have
  * been used
  */
-void plotAlgorithms(char *title, uint64_t totalRounds, double *greedy,
-                    double *eGreedy, double *succElim, double *ucb1,
+void plotAlgorithms(char *ylabel, uint64_t totalRounds, double *greedy, double *eGreedy, double *succElim, double *ucb1,
                     double *ucb2, double *exp3, Flag flag);
 
 #endif
