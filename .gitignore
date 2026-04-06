@@ -1,9 +1,8 @@
-propheticBandits
-priceGenerator
-prophetData
+prophetData/
 compile_commands.json
-obj
-bin
-!/src/.idea/
-!/.clang-format
-!/src/.idea/
+obj/
+bin/
+.idea/
+src/.idea/
+.cache/
+.clang-format
