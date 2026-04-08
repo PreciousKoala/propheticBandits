@@ -76,8 +76,8 @@ propheticBandits [options] -m [integer] -t [integer] [file]
 | ---- | --- |
 | -h | Displays a help screen |
 | -t <integer> | Sets the number of thresholds to choose from (default = 10) |
-| -m <integer> | Sets the number of maximum items the algorithm can hold at a time (default = 1) |
 | -a | Runs all the algorithms |
+| -m | Run the Median algorithm |
 | -g | Runs the Greedy algorithm |
 | -e | Runs the Epsilon-Greedy algorithm |
 | -s | Runs the Successive Elimination algorithm |
@@ -89,9 +89,9 @@ propheticBandits [options] -m [integer] -t [integer] [file]
 
 ```bash
 bin/propheticBandits -uUx prophetData/file1.dat
-# Runs the UCB1, UCB2 and EXP3 algorithms for file1.dat with 10 thresholds and maximum capacity of 1 item
+# Runs the UCB1, UCB2 and EXP3 algorithms for file1.dat with 10 thresholds
 bin/propheticBandits -a -t 4 prophetData/file2.dat
-# Runs all the algorithms for file2.dat with 4 thresholds and maximum capacity of 1 item
-bin/propheticBandits -ge -t 4 -m 3 prophetData/file3.dat
-# Runs the greedy and epsilon-greedy algorithms for file3.dat with 4 thresholds and maximum capacity of 3 items
+# Runs all the algorithms for file2.dat with 4 thresholds
+bin/propheticBandits -ge -t 4 prophetData/file3.dat
+# Runs the greedy and epsilon-greedy algorithms for file3.dat with 4 thresholds
 ```
