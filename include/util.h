@@ -4,6 +4,7 @@
 #include <stdint.h>
 
 typedef struct flagStruct {
+    uint8_t median;
     uint8_t greedy;
     uint8_t eGreedy;
     uint8_t succElim;
@@ -42,14 +43,21 @@ void initThreshold(Threshold *thres, uint32_t totalThresholds);
  *
  * @param thres Threshold array
  * @param th The chosen threshold
- * @param totalThresholds The size of the threshold array
- * @param reward The array with all the possible rewards
+ * @param totalRounds The number of rounds
+ * @param pricesPerRound The number of prices per round
+ * @param data The array with the prices
  * @param avgThreshold The array that holds the average chosen threshold of each round
+ * @param avgTrades The array that holds the average number of trades (selling an item) up to the current round
  * @param totalGain The array that holds the total gain up to the current round
  * @param round The current round
+ * @param heldItems True if the algorithm is holding an item from the previous round
+ * @param norm Variable that normalized data previously
+ *
+ * @returns The reward of the round
  */
-void runRound(Threshold *thres, uint32_t th, uint32_t totalThresholds, double *reward, double *avgThreshold,
-              double *totalGain, uint64_t round);
+double runRound(Threshold *thres, uint32_t th, uint64_t totalRounds, uint64_t pricesPerRound, double *data,
+              double *avgThreshold, double *avgTrades, double *totalGain, uint64_t round, uint8_t *heldItems,
+              double norm);
 
 /**
  * @brief Normalizes a 2D array represented in 1D in [0,1]
@@ -57,10 +65,9 @@ void runRound(Threshold *thres, uint32_t th, uint32_t totalThresholds, double *r
  * @param min The minimum value of the array
  * @param max The maximum value of the array
  * @param data The array that is to be normalized
- * @param totalRounds The total number of rounds
- * @param pricesPerRound The total number of prices each round
+ * @param size The size of the array
  */
-void normalizePrices(double min, double max, double *data, uint64_t totalRounds, uint64_t pricesPerRound);
+void normalizePrices(double min, double max, double *data, uint64_t size);
 
 /**
  * @brief Calculates the reward for each threshold, for each day
@@ -102,12 +109,13 @@ void getBestHandDistance(uint64_t totalRounds, double *algThresholdDist, double 
  *
  * @param ylabel The title that appears on the plot window
  * @param totalRounds The total number of rounds and the size of each array
- * @param [greedy, eGreedy, succElim, ucb1, ucb2, exp3] The array that holds the
+ * @param [median, greedy, eGreedy, succElim, ucb1, ucb2, exp3] The array that holds the
  * information to be plotted for each algorithm for each round
  * @param flag The Flag struct that informs the program which algorithms have
  * been used
+ * @param bounded True when the plotted values need to be bounded in [0,1]
  */
-void plotAlgorithms(char *ylabel, uint64_t totalRounds, double *greedy, double *eGreedy, double *succElim, double *ucb1,
-                    double *ucb2, double *exp3, Flag flag);
+void plotAlgorithms(char *ylabel, uint64_t totalRounds, double *median, double *greedy, double *eGreedy,
+                    double *succElim, double *ucb1, double *ucb2, double *exp3, Flag flag, uint8_t bounded);
 
 #endif

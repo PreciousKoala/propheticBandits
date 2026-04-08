@@ -6,8 +6,8 @@
 #include <banditAlgs.h>
 #include <util.h>
 
-void succElim(double *reward, double *totalGain, double *avgThreshold, double *totalOpt, uint32_t totalThresholds,
-              uint64_t totalRounds) {
+void succElim(double *data, double *totalGain, double *avgThreshold, double *avgTrades, double *totalOpt,
+              uint32_t totalThresholds, uint64_t totalRounds, uint64_t pricesPerRound, double norm) {
     /**
      * INFO: The Successive Elimination algorithm in short:
      *
@@ -31,6 +31,7 @@ void succElim(double *reward, double *totalGain, double *avgThreshold, double *t
     initThreshold(thres, totalThresholds);
 
     totalGain[0] = 0;
+    uint8_t heldItems = 0;
 
     double *upperConfBound = malloc(totalThresholds * sizeof(double));
     double *lowerConfBound = malloc(totalThresholds * sizeof(double));
@@ -44,7 +45,8 @@ void succElim(double *reward, double *totalGain, double *avgThreshold, double *t
     while (t < totalRounds) {
         for (uint32_t th = 0; th < totalThresholds && t < totalRounds; th++) {
             if (thresActive[th]) {
-                runRound(thres, th, totalThresholds, reward, avgThreshold, totalGain, t);
+                runRound(thres, th, totalRounds, pricesPerRound, data, avgThreshold, avgTrades, totalGain, t,
+                         &heldItems, norm);
                 t++;
             }
         }

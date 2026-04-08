@@ -1,5 +1,6 @@
 #include <getopt.h>
 #include <gsl/gsl_rng.h>
+#include <gsl/gsl_statistics_double.h>
 #include <math.h>
 #include <stdint.h>
 #include <stdio.h>
@@ -31,13 +32,13 @@ int main(int argc, char **argv) {
     }
 
     uint32_t totalThresholds = 10;
-    Flag flag = {0, 0, 0, 0, 0, 0};
+    Flag flag = {0, 0, 0, 0, 0, 0, 0};
 
     int opt;
 
     opterr = 0;
 
-    while ((opt = getopt(argc, argv, ":h:agesuUxt:")) != -1) {
+    while ((opt = getopt(argc, argv, ":h:amgesuUxt:")) != -1) {
         switch (opt) {
             case 'h':
                 printHelp();
@@ -46,7 +47,10 @@ int main(int argc, char **argv) {
                 totalThresholds = atoi(optarg);
                 break;
             case 'a':
-                flag = (Flag) {1, 1, 1, 1, 1, 1};
+                flag = (Flag) {1, 1, 1, 1, 1, 1, 1};
+            case 'm':
+                flag.median = 1;
+                break;
             case 'g':
                 flag.greedy = 1;
                 break;
@@ -66,7 +70,7 @@ int main(int argc, char **argv) {
                 flag.exp3 = 1;
                 break;
             case '?':
-                if (optopt == 'm' || optopt == 't')
+                if (optopt == 't')
                     fprintf(stderr, "Option -%c requires an argument.\n", optopt);
                 break;
             default:
@@ -125,181 +129,169 @@ int main(int argc, char **argv) {
         return 1;
     }
 
-    double dataMin = INFINITY;
-    double dataMax = -INFINITY;
-
-    for (uint64_t i = 0; i < totalRounds * pricesPerRound; i++) {
-        if (data[i] < dataMin)
-            dataMin = data[i];
-        if (data[i] > dataMax)
-            dataMax = data[i];
-    }
+    double dataMin, dataMax;
+    gsl_stats_minmax(&dataMin, &dataMax, data, 1, totalRounds * pricesPerRound);
 
     // Normalize prices to [0, 1]
     printf("Normalizing prices to [0,1]...\n");
-    normalizePrices(dataMin, dataMax, data, totalRounds, pricesPerRound);
-
-    printf("Calculating rewards...\n");
-    double *reward = malloc(totalRounds * totalThresholds * sizeof(double));
-    calculateRewards(reward, data, totalRounds, pricesPerRound, totalThresholds);
-
-    double rewardMin = INFINITY;
-    double rewardMax = -INFINITY;
-
-    for (uint64_t i = 0; i < totalRounds * totalThresholds; i++) {
-        if (reward[i] < rewardMin)
-            rewardMin = reward[i];
-        if (reward[i] > rewardMax)
-            rewardMax = reward[i];
-    }
+    normalizePrices(dataMin, dataMax, data, totalRounds * pricesPerRound);
 
     printf("Calculating optimal result (local extrema)...\n");
-    double *totalExtremaOpt = malloc(totalRounds * sizeof(double));
-    findOpt(data, totalExtremaOpt, totalRounds, pricesPerRound);
+    double *totalOpt = malloc(totalRounds * sizeof(double));
+    findOpt(data, totalOpt, totalRounds, pricesPerRound);
 
-    double optMax = totalExtremaOpt[0];
+    /*
+     * Both bandit algorithms and trading prophets benefit greatly when X_i belongs in [0,1], especially when analyzing
+     * regret. Combining these 2 problems requires further normalization. Choices include:
+     *
+     * -Dividing by the maximum possible reward of a day.
+     *
+     * -Dividing by the average reward of Extrema OPT. Good for regret analysis, but some rewards and regret may be
+     * higher than 1.
+     *
+     * -Normalizing with the min and max reward a threshold can achieve. Regret analysis and normalization for Extrema
+     * OPT is difficult.
+     *
+     * -Dividing by the maximum theoretical reward of a day. Assuming prices are {0,1,0,1,...}, the maximum
+     * reward is N/2. This is easy to implement, but it probably affects algorithm performance.
+     */
 
+    // Normalize prices to [0, 1]
+    printf("Further normalization according to OPT...\n");
+
+    double optMax = -INFINITY;
     for (uint64_t t = 1; t < totalRounds; t++) {
-        double roundOpt = totalExtremaOpt[t] - totalExtremaOpt[t - 1];
+        double roundOpt = totalOpt[t] - totalOpt[t - 1];
         if (roundOpt > optMax)
             optMax = roundOpt;
     }
+    double norm = optMax;
 
     for (uint64_t t = 0; t < totalRounds; t++) {
-        totalExtremaOpt[t] = (totalExtremaOpt[t] - (double)(t + 1) * rewardMin) / (optMax - rewardMin);
+        totalOpt[t] = totalOpt[t] / norm;
     }
-
-    // Normalize prices to [0, 1]
-    printf("Normalizing rewards to [0,1]...\n");
-    normalizePrices(rewardMin, optMax, reward, totalRounds, totalThresholds);
-    normalizePrices(rewardMin, optMax, data, totalRounds, pricesPerRound);
+    for (int i = 0; i < totalRounds * pricesPerRound; i++) {
+        data[i] = data[i] / norm;
+    }
 
     printf("\n");
     printf("---------------------------------LOCAL-EXTREMA-----------------------"
            "-----------\n");
-    printf("Total OPT: %lf\n", totalExtremaOpt[totalRounds - 1]);
-    printf("Average OPT: %lf\n", totalExtremaOpt[totalRounds - 1] / (double) totalRounds);
+    printf("Total OPT: %lf\n", totalOpt[totalRounds - 1]);
+    printf("Average OPT: %lf\n", totalOpt[totalRounds - 1] / (double) totalRounds);
     printf("---------------------------------------------------------------------"
            "-----------\n\n");
 
+    double *medianAvgRegret = malloc(totalRounds * sizeof(double));
+    double *medianAvgTrades = malloc(totalRounds * sizeof(double));
+    double *medianAvgThreshold = malloc(totalRounds * sizeof(double));
+    if (flag.median) {
+        double *medianGain = malloc(totalRounds * sizeof(double));
 
+        printf("Calculating Median...\n");
+        median(data, medianGain, medianAvgThreshold, medianAvgTrades, totalOpt, totalRounds, pricesPerRound, norm);
 
-    printf("Calculating optimal result (best hand)...\n");
-    double *totalOpt = malloc(totalRounds * sizeof(double));
-    double *bestAvgThreshold = malloc(totalRounds * sizeof(double));
-    findBestHand(reward, totalOpt, bestAvgThreshold, totalRounds, totalThresholds);
-
-    free(data);
+        getAvgRegret(totalRounds, medianAvgRegret, totalOpt, medianGain);
+        free(medianGain);
+    }
 
     double *greedyAvgRegret = malloc(totalRounds * sizeof(double));
-    double *greedyExtrAvgRegret = malloc(totalRounds * sizeof(double));
-    double *greedyThresholdDist = malloc(totalRounds * sizeof(double));
+    double *greedyAvgTrades = malloc(totalRounds * sizeof(double));
     double *greedyAvgThreshold = malloc(totalRounds * sizeof(double));
     if (flag.greedy) {
         double *greedyGain = malloc(totalRounds * sizeof(double));
 
         printf("Calculating Greedy...\n");
-        greedy(reward, greedyGain, greedyAvgThreshold, totalOpt, totalThresholds, totalRounds);
+        greedy(data, greedyGain, greedyAvgThreshold, greedyAvgTrades, totalOpt, totalThresholds, totalRounds,
+               pricesPerRound, norm);
 
         getAvgRegret(totalRounds, greedyAvgRegret, totalOpt, greedyGain);
-        getAvgRegret(totalRounds, greedyExtrAvgRegret, totalExtremaOpt, greedyGain);
-        getBestHandDistance(totalRounds, greedyThresholdDist, bestAvgThreshold, greedyAvgThreshold);
         free(greedyGain);
     }
 
     double *eGreedyAvgRegret = malloc(totalRounds * sizeof(double));
-    double *eGreedyExtrAvgRegret = malloc(totalRounds * sizeof(double));
-    double *eGreedyThresholdDist = malloc(totalRounds * sizeof(double));
+    double *eGreedyAvgTrades = malloc(totalRounds * sizeof(double));
     double *eGreedyAvgThreshold = malloc(totalRounds * sizeof(double));
     if (flag.eGreedy) {
         double *eGreedyGain = malloc(totalRounds * sizeof(double));
 
         printf("Calculating Epsilon-Greedy...\n");
-        epsilonGreedy(reward, eGreedyGain, eGreedyAvgThreshold, totalOpt, totalThresholds, totalRounds);
+        epsilonGreedy(data, eGreedyGain, eGreedyAvgThreshold, eGreedyAvgTrades, totalOpt, totalThresholds, totalRounds,
+                      pricesPerRound, norm);
 
         getAvgRegret(totalRounds, eGreedyAvgRegret, totalOpt, eGreedyGain);
-        getAvgRegret(totalRounds, eGreedyExtrAvgRegret, totalExtremaOpt, eGreedyGain);
-        getBestHandDistance(totalRounds, eGreedyThresholdDist, bestAvgThreshold, eGreedyAvgThreshold);
         free(eGreedyGain);
     }
 
     double *succElimAvgRegret = malloc(totalRounds * sizeof(double));
-    double *succElimExtrAvgRegret = malloc(totalRounds * sizeof(double));
-    double *succElimThresholdDist = malloc(totalRounds * sizeof(double));
+    double *succElimAvgTrades = malloc(totalRounds * sizeof(double));
     double *succElimAvgThreshold = malloc(totalRounds * sizeof(double));
     if (flag.succElim) {
         double *succElimGain = malloc(totalRounds * sizeof(double));
 
         printf("Calculating Successive Elimination...\n");
-        succElim(reward, succElimGain, succElimAvgThreshold, totalOpt, totalThresholds, totalRounds);
+        succElim(data, succElimGain, succElimAvgThreshold, succElimAvgTrades, totalOpt, totalThresholds, totalRounds,
+                 pricesPerRound, norm);
 
         getAvgRegret(totalRounds, succElimAvgRegret, totalOpt, succElimGain);
-        getAvgRegret(totalRounds, succElimExtrAvgRegret, totalExtremaOpt, succElimGain);
-        getBestHandDistance(totalRounds, succElimThresholdDist, bestAvgThreshold, succElimAvgThreshold);
         free(succElimGain);
     }
 
     double *ucb1AvgRegret = malloc(totalRounds * sizeof(double));
-    double *ucb1ExtrAvgRegret = malloc(totalRounds * sizeof(double));
-    double *ucb1ThresholdDist = malloc(totalRounds * sizeof(double));
+    double *ucb1AvgTrades = malloc(totalRounds * sizeof(double));
     double *ucb1AvgThreshold = malloc(totalRounds * sizeof(double));
     if (flag.ucb1) {
         double *ucb1Gain = malloc(totalRounds * sizeof(double));
 
         printf("Calculating UCB1...\n");
-        ucb1(reward, ucb1Gain, ucb1AvgThreshold, totalOpt, totalThresholds, totalRounds);
+        ucb1(data, ucb1Gain, ucb1AvgThreshold, ucb1AvgTrades, totalOpt, totalThresholds, totalRounds, pricesPerRound,
+             norm);
 
         getAvgRegret(totalRounds, ucb1AvgRegret, totalOpt, ucb1Gain);
-        getAvgRegret(totalRounds, ucb1ExtrAvgRegret, totalExtremaOpt, ucb1Gain);
-        getBestHandDistance(totalRounds, ucb1ThresholdDist, bestAvgThreshold, ucb1AvgThreshold);
         free(ucb1Gain);
     }
 
     double *ucb2AvgRegret = malloc(totalRounds * sizeof(double));
-    double *ucb2ExtrAvgRegret = malloc(totalRounds * sizeof(double));
-    double *ucb2ThresholdDist = malloc(totalRounds * sizeof(double));
+    double *ucb2AvgTrades = malloc(totalRounds * sizeof(double));
     double *ucb2AvgThreshold = malloc(totalRounds * sizeof(double));
     if (flag.ucb2) {
         double *ucb2Gain = malloc(totalRounds * sizeof(double));
 
         printf("Calculating UCB2...\n");
-        ucb2(reward, ucb2Gain, ucb2AvgThreshold, totalOpt, totalThresholds, totalRounds);
+        ucb2(data, ucb2Gain, ucb2AvgThreshold, ucb2AvgTrades, totalOpt, totalThresholds, totalRounds, pricesPerRound,
+             norm);
 
         getAvgRegret(totalRounds, ucb2AvgRegret, totalOpt, ucb2Gain);
-        getAvgRegret(totalRounds, ucb2ExtrAvgRegret, totalExtremaOpt, ucb2Gain);
-        getBestHandDistance(totalRounds, ucb2ThresholdDist, bestAvgThreshold, ucb2AvgThreshold);
         free(ucb2Gain);
     }
 
     double *exp3AvgRegret = malloc(totalRounds * sizeof(double));
-    double *exp3ExtrAvgRegret = malloc(totalRounds * sizeof(double));
-    double *exp3ThresholdDist = malloc(totalRounds * sizeof(double));
+    double *exp3AvgTrades = malloc(totalRounds * sizeof(double));
     double *exp3AvgThreshold = malloc(totalRounds * sizeof(double));
     if (flag.exp3) {
         double *exp3Gain = malloc(totalRounds * sizeof(double));
 
         printf("Calculating EXP3...\n");
-        exp3(reward, exp3Gain, exp3AvgThreshold, totalOpt, totalThresholds, totalRounds);
+        exp3(data, exp3Gain, exp3AvgThreshold, exp3AvgTrades, totalOpt, totalThresholds, totalRounds, pricesPerRound,
+             norm);
 
         getAvgRegret(totalRounds, exp3AvgRegret, totalOpt, exp3Gain);
-        getAvgRegret(totalRounds, exp3ExtrAvgRegret, totalExtremaOpt, exp3Gain);
-        getBestHandDistance(totalRounds, exp3ThresholdDist, bestAvgThreshold, exp3AvgThreshold);
         free(exp3Gain);
     }
 
-    free(reward);
+    free(data);
     free(totalOpt);
-    free(totalExtremaOpt);
-    free(bestAvgThreshold);
 
-    uint8_t noAlgs = !(flag.greedy || flag.eGreedy || flag.succElim || flag.ucb1 || flag.ucb2 || flag.exp3);
+    uint8_t noAlgs =
+            !(flag.median || flag.greedy || flag.eGreedy || flag.succElim || flag.ucb1 || flag.ucb2 || flag.exp3);
 
     if (!noAlgs) {
-        printf("Plotting best hand regret...\n");
-        plotAlgorithms("Average Regret (Best Hand)", totalRounds, greedyAvgRegret, eGreedyAvgRegret, succElimAvgRegret,
-                       ucb1AvgRegret, ucb2AvgRegret, exp3AvgRegret, flag);
+        printf("Plotting regret...\n");
+        plotAlgorithms("Average Regret", totalRounds, medianAvgRegret, greedyAvgRegret, eGreedyAvgRegret,
+                       succElimAvgRegret, ucb1AvgRegret, ucb2AvgRegret, exp3AvgRegret, flag, 1);
     }
 
+    free(medianAvgRegret);
     free(greedyAvgRegret);
     free(eGreedyAvgRegret);
     free(succElimAvgRegret);
@@ -308,24 +300,12 @@ int main(int argc, char **argv) {
     free(exp3AvgRegret);
 
     if (!noAlgs) {
-        printf("Plotting percentage of best hands played...\n");
-        plotAlgorithms("Average distance from best threshold", totalRounds, greedyThresholdDist, eGreedyThresholdDist,
-                       succElimThresholdDist, ucb1ThresholdDist, ucb2ThresholdDist, exp3ThresholdDist, flag);
-    }
-
-    free(greedyThresholdDist);
-    free(eGreedyThresholdDist);
-    free(succElimThresholdDist);
-    free(ucb1ThresholdDist);
-    free(ucb2ThresholdDist);
-    free(exp3ThresholdDist);
-
-    if (!noAlgs) {
         printf("Plotting average threshold...\n");
-        plotAlgorithms("Average Hand", totalRounds, greedyAvgThreshold, eGreedyAvgThreshold, succElimAvgThreshold,
-                       ucb1AvgThreshold, ucb2AvgThreshold, exp3AvgThreshold, flag);
+        plotAlgorithms("Average Threshold", totalRounds, medianAvgThreshold, greedyAvgThreshold, eGreedyAvgThreshold,
+                       succElimAvgThreshold, ucb1AvgThreshold, ucb2AvgThreshold, exp3AvgThreshold, flag, 1);
     }
 
+    free(medianAvgThreshold);
     free(greedyAvgThreshold);
     free(eGreedyAvgThreshold);
     free(succElimAvgThreshold);
@@ -334,17 +314,18 @@ int main(int argc, char **argv) {
     free(exp3AvgThreshold);
 
     if (!noAlgs) {
-        printf("Plotting extrema regret...\n");
-        plotAlgorithms("Average Regret (Extrema)", totalRounds, greedyExtrAvgRegret, eGreedyExtrAvgRegret,
-                       succElimExtrAvgRegret, ucb1ExtrAvgRegret, ucb2ExtrAvgRegret, exp3ExtrAvgRegret, flag);
+        printf("Plotting average number of items...\n");
+        plotAlgorithms("Average number of items sold per round", totalRounds, medianAvgTrades, greedyAvgTrades,
+                       eGreedyAvgTrades, succElimAvgTrades, ucb1AvgTrades, ucb2AvgTrades, exp3AvgTrades, flag, 0);
     }
 
-    free(greedyExtrAvgRegret);
-    free(eGreedyExtrAvgRegret);
-    free(succElimExtrAvgRegret);
-    free(ucb1ExtrAvgRegret);
-    free(ucb2ExtrAvgRegret);
-    free(exp3ExtrAvgRegret);
+    free(medianAvgTrades);
+    free(greedyAvgTrades);
+    free(eGreedyAvgTrades);
+    free(succElimAvgTrades);
+    free(ucb1AvgTrades);
+    free(ucb2AvgTrades);
+    free(exp3AvgTrades);
 
     return 0;
 }

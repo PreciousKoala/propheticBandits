@@ -7,26 +7,22 @@
 #include <util.h>
 
 void findOpt(double *data, double *totalOpt, uint64_t totalRounds, uint64_t pricesPerRound) {
-    for (uint64_t t = 0; t < totalRounds; t++) {
-        uint8_t localMin = data[pricesPerRound * t] <= data[pricesPerRound * t + 1];
-        uint8_t localMax;
+    uint8_t localMin = data[0] <= data[1];
+    uint8_t localMax;
 
-        totalOpt[t] = -data[pricesPerRound * t] * localMin;
+    totalOpt[0] = -data[0] * localMin;
 
-        for (uint64_t n = 1; n < pricesPerRound - 1; n++) {
-            localMax = data[pricesPerRound * t + n] >= data[pricesPerRound * t + n - 1];
+    for (uint64_t i = 1; i < totalRounds * pricesPerRound - 1; i++) {
+        localMax = (data[i] >= data[i - 1]);
+        localMin = (data[i] <= data[i + 1]);
+        totalOpt[i / pricesPerRound] += data[i] * localMax - data[i] * localMin;
+    }
 
-            localMin = data[pricesPerRound * t + n] <= data[pricesPerRound * t + n + 1];
+    localMax = data[totalRounds * pricesPerRound - 1] >= data[totalRounds * pricesPerRound - 2];
+    totalOpt[totalRounds - 1] += data[totalRounds * pricesPerRound - 1] * localMax;
 
-            totalOpt[t] += data[pricesPerRound * t + n] * localMax - data[pricesPerRound * t + n] * localMin;
-        }
-
-        localMax = data[pricesPerRound * (t + 1) - 1] >= data[pricesPerRound * (t + 1) - 2];
-        totalOpt[t] += data[pricesPerRound * (t + 1) - 1] * localMax;
-
-        if (t != 0) {
-            totalOpt[t] += totalOpt[t - 1];
-        }
+    for (uint64_t t = 1; t < totalRounds; t++) {
+        totalOpt[t] += totalOpt[t - 1];
     }
 
     // printf("\n");

@@ -7,8 +7,8 @@
 #include <banditAlgs.h>
 #include <util.h>
 
-void exp3(double *reward, double *totalGain, double *avgThreshold, double *totalOpt, uint32_t totalThresholds,
-          uint64_t totalRounds) {
+void exp3(double *data, double *totalGain, double *avgThreshold, double *avgTrades, double *totalOpt,
+          uint32_t totalThresholds, uint64_t totalRounds, uint64_t pricesPerRound, double norm) {
     /**
      * INFO: The exp3 algorithm in short:
      *
@@ -50,6 +50,7 @@ void exp3(double *reward, double *totalGain, double *avgThreshold, double *total
     initThreshold(thres, totalThresholds);
 
     totalGain[0] = 0;
+    uint8_t heldItems = 0;
 
     // threshold weights must be long double to prevent errors with very large
     // datasets probably doesn't work on windows but oh well
@@ -63,9 +64,8 @@ void exp3(double *reward, double *totalGain, double *avgThreshold, double *total
         // upper bound is variable for easier future changes
         double upperBound = pow(2.0, ceil(log2((double) t + 1.0)));
         long double gamma = sqrt(totalThresholds * log(totalThresholds) / ((M_E - 1) * upperBound));
-        if (gamma > 1) {
+        if (gamma > 1)
             gamma = 1;
-        }
 
         weightSum = 0;
         for (uint32_t th = 0; th < totalThresholds; th++) {
@@ -87,10 +87,9 @@ void exp3(double *reward, double *totalGain, double *avgThreshold, double *total
             }
         }
 
-        runRound(thres, chosenTh, totalThresholds, reward, avgThreshold, totalGain, t);
-
         // weight only changes for the chosen threshold
-        double gain = reward[totalThresholds * t + chosenTh];
+        double gain = runRound(thres, chosenTh, totalRounds, pricesPerRound, data, avgThreshold, avgTrades, totalGain,
+                               t, &heldItems, norm);
         double estimatedReward = gain / thresholdProb;
         thresholdWeight[chosenTh] *= expl(gamma * estimatedReward / totalThresholds);
     }

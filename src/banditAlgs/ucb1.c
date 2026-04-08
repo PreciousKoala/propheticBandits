@@ -6,8 +6,8 @@
 #include <banditAlgs.h>
 #include <util.h>
 
-void ucb1(double *reward, double *totalGain, double *avgThreshold, double *totalOpt, uint32_t totalThresholds,
-          uint64_t totalRounds) {
+void ucb1(double *data, double *totalGain, double *avgThreshold, double *avgTrades, double *totalOpt,
+          uint32_t totalThresholds, uint64_t totalRounds, uint64_t pricesPerRound, double norm) {
     /**
      * INFO: The ucb1 algorithm in short:
      *
@@ -29,12 +29,13 @@ void ucb1(double *reward, double *totalGain, double *avgThreshold, double *total
     initThreshold(thres, totalThresholds);
 
     totalGain[0] = 0;
+    uint8_t heldItems = 0;
 
     uint32_t chosenTh = 0;
     double *upperConfBound = malloc(totalThresholds * sizeof(double));
 
     for (uint32_t t = 0; t < totalThresholds; t++) {
-        runRound(thres, chosenTh, totalThresholds, reward, avgThreshold, totalGain, t);
+        runRound(thres, t, totalRounds, pricesPerRound, data, avgThreshold, avgTrades, totalGain, t, &heldItems, norm);
     }
 
     for (uint64_t t = totalThresholds; t < totalRounds; t++) {
@@ -51,7 +52,8 @@ void ucb1(double *reward, double *totalGain, double *avgThreshold, double *total
                 chosenTh = th;
             }
         }
-        runRound(thres, chosenTh, totalThresholds, reward, avgThreshold, totalGain, t);
+        runRound(thres, chosenTh, totalRounds, pricesPerRound, data, avgThreshold, avgTrades, totalGain, t, &heldItems,
+                 norm);
     }
 
     printf("\n");

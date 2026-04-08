@@ -6,8 +6,8 @@
 #include <banditAlgs.h>
 #include <util.h>
 
-void ucb2(double *reward, double *totalGain, double *avgThreshold, double *totalOpt, uint32_t totalThresholds,
-          uint64_t totalRounds) {
+void ucb2(double *data, double *totalGain, double *avgThreshold, double *avgTrades, double *totalOpt,
+          uint32_t totalThresholds, uint64_t totalRounds, uint64_t pricesPerRound, double norm) {
     /**
      * INFO: The ucb2 algorithm in short:
      *
@@ -34,6 +34,7 @@ void ucb2(double *reward, double *totalGain, double *avgThreshold, double *total
     initThreshold(thres, totalThresholds);
 
     totalGain[0] = 0;
+    uint8_t heldItems = 0;
 
     uint32_t chosenTh = 0;
     double *upperConfBound = malloc(totalThresholds * sizeof(double));
@@ -42,7 +43,7 @@ void ucb2(double *reward, double *totalGain, double *avgThreshold, double *total
 
     for (uint8_t t = 0; t < totalThresholds; t++) {
         epochsChosen[t] = 0;
-        runRound(thres, chosenTh, totalThresholds, reward, avgThreshold, totalGain, t);
+        runRound(thres, t, totalRounds, pricesPerRound, data, avgThreshold, avgTrades, totalGain, t, &heldItems, norm);
     }
 
     uint64_t t = totalThresholds;
@@ -68,7 +69,8 @@ void ucb2(double *reward, double *totalGain, double *avgThreshold, double *total
                           (uint64_t) ceil(pow((1 + alpha), epochsChosen[chosenTh]));
 
         while (t < totalRounds && repeat > 0) {
-            runRound(thres, chosenTh, totalThresholds, reward, avgThreshold, totalGain, t);
+            runRound(thres, chosenTh, totalRounds, pricesPerRound, data, avgThreshold, avgTrades, totalGain, t,
+                     &heldItems, norm);
             t++;
             repeat--;
         }

@@ -5,8 +5,8 @@
 #include <banditAlgs.h>
 #include <util.h>
 
-void epsilonGreedy(double *reward, double *totalGain, double *avgThreshold, double *totalOpt, uint32_t totalThresholds,
-                   uint64_t totalRounds) {
+void epsilonGreedy(double *data, double *totalGain, double *avgThreshold, double *avgTrades, double *totalOpt,
+                   uint32_t totalThresholds, uint64_t totalRounds, uint64_t pricesPerRound, double norm) {
     /**
      * INFO: The epsilon greedy algorithm in short:
      *
@@ -38,8 +38,8 @@ void epsilonGreedy(double *reward, double *totalGain, double *avgThreshold, doub
 
     uint64_t explore = 0;
     uint64_t exploit = 0;
-
     totalGain[0] = 0;
+    uint8_t heldItems = 0;
 
     for (uint64_t t = 0; t < totalRounds; t++) {
         double exploreProb = cbrt(totalThresholds * log(pow(2.0, ceil(log2((double) t + 1.0)))) / (t + 1));
@@ -64,7 +64,8 @@ void epsilonGreedy(double *reward, double *totalGain, double *avgThreshold, doub
             exploit++;
         }
 
-        runRound(thres, chosenTh, totalThresholds, reward, avgThreshold, totalGain, t);
+        runRound(thres, chosenTh, totalRounds, pricesPerRound, data, avgThreshold, avgTrades, totalGain, t,
+                 &heldItems, norm);
     }
 
     printf("\n");
