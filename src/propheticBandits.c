@@ -182,113 +182,149 @@ int main(int argc, char **argv) {
     printf("---------------------------------------------------------------------"
            "-----------\n\n");
 
+    double *medianGain = malloc(totalRounds * sizeof(double));
     double *medianAvgRegret = malloc(totalRounds * sizeof(double));
+    double *medianCompRatio = malloc(totalRounds * sizeof(double));
     double *medianAvgTrades = malloc(totalRounds * sizeof(double));
     double *medianAvgThreshold = malloc(totalRounds * sizeof(double));
+    double *medianAvgTradeGain = malloc(totalRounds * sizeof(double));
     if (flag.median) {
-        double *medianGain = malloc(totalRounds * sizeof(double));
 
         printf("Calculating Median...\n");
         median(data, medianGain, medianAvgThreshold, medianAvgTrades, totalOpt, totalRounds, pricesPerRound, norm);
 
         getAvgRegret(totalRounds, medianAvgRegret, totalOpt, medianGain);
-        free(medianGain);
+        getCompRatio(totalRounds, medianCompRatio, totalOpt, medianGain);
+        getAvgTradeGain(totalRounds, medianGain, medianAvgTrades, medianAvgTradeGain);
     }
 
+    double *greedyGain = malloc(totalRounds * sizeof(double));
     double *greedyAvgRegret = malloc(totalRounds * sizeof(double));
+    double *greedyCompRatio = malloc(totalRounds * sizeof(double));
     double *greedyAvgTrades = malloc(totalRounds * sizeof(double));
     double *greedyAvgThreshold = malloc(totalRounds * sizeof(double));
+    double *greedyAvgTradeGain = malloc(totalRounds * sizeof(double));
     if (flag.greedy) {
-        double *greedyGain = malloc(totalRounds * sizeof(double));
 
         printf("Calculating Greedy...\n");
         greedy(data, greedyGain, greedyAvgThreshold, greedyAvgTrades, totalOpt, totalThresholds, totalRounds,
                pricesPerRound, norm);
 
         getAvgRegret(totalRounds, greedyAvgRegret, totalOpt, greedyGain);
-        free(greedyGain);
+        getCompRatio(totalRounds, greedyCompRatio, totalOpt, greedyGain);
+        getAvgTradeGain(totalRounds, greedyGain, greedyAvgTrades, greedyAvgTradeGain);
     }
 
+    double *eGreedyGain = malloc(totalRounds * sizeof(double));
     double *eGreedyAvgRegret = malloc(totalRounds * sizeof(double));
+    double *eGreedyCompRatio = malloc(totalRounds * sizeof(double));
     double *eGreedyAvgTrades = malloc(totalRounds * sizeof(double));
     double *eGreedyAvgThreshold = malloc(totalRounds * sizeof(double));
+    double *eGreedyAvgTradeGain = malloc(totalRounds * sizeof(double));
     if (flag.eGreedy) {
-        double *eGreedyGain = malloc(totalRounds * sizeof(double));
 
         printf("Calculating Epsilon-Greedy...\n");
         epsilonGreedy(data, eGreedyGain, eGreedyAvgThreshold, eGreedyAvgTrades, totalOpt, totalThresholds, totalRounds,
                       pricesPerRound, norm);
 
         getAvgRegret(totalRounds, eGreedyAvgRegret, totalOpt, eGreedyGain);
-        free(eGreedyGain);
+        getCompRatio(totalRounds, eGreedyCompRatio, totalOpt, eGreedyGain);
+        getAvgTradeGain(totalRounds, eGreedyGain, eGreedyAvgTrades, eGreedyAvgTradeGain);
     }
 
+    double *succElimGain = malloc(totalRounds * sizeof(double));
     double *succElimAvgRegret = malloc(totalRounds * sizeof(double));
+    double *succElimCompRatio = malloc(totalRounds * sizeof(double));
     double *succElimAvgTrades = malloc(totalRounds * sizeof(double));
     double *succElimAvgThreshold = malloc(totalRounds * sizeof(double));
+    double *succElimAvgTradeGain = malloc(totalRounds * sizeof(double));
     if (flag.succElim) {
-        double *succElimGain = malloc(totalRounds * sizeof(double));
 
         printf("Calculating Successive Elimination...\n");
         succElim(data, succElimGain, succElimAvgThreshold, succElimAvgTrades, totalOpt, totalThresholds, totalRounds,
                  pricesPerRound, norm);
 
         getAvgRegret(totalRounds, succElimAvgRegret, totalOpt, succElimGain);
-        free(succElimGain);
+        getCompRatio(totalRounds, succElimCompRatio, totalOpt, succElimGain);
+        getAvgTradeGain(totalRounds, succElimGain, succElimAvgTrades, succElimAvgTradeGain);
     }
 
+    double *ucb1Gain = malloc(totalRounds * sizeof(double));
     double *ucb1AvgRegret = malloc(totalRounds * sizeof(double));
+    double *ucb1CompRatio = malloc(totalRounds * sizeof(double));
     double *ucb1AvgTrades = malloc(totalRounds * sizeof(double));
     double *ucb1AvgThreshold = malloc(totalRounds * sizeof(double));
+    double *ucb1AvgTradeGain = malloc(totalRounds * sizeof(double));
     if (flag.ucb1) {
-        double *ucb1Gain = malloc(totalRounds * sizeof(double));
 
         printf("Calculating UCB1...\n");
         ucb1(data, ucb1Gain, ucb1AvgThreshold, ucb1AvgTrades, totalOpt, totalThresholds, totalRounds, pricesPerRound,
              norm);
 
         getAvgRegret(totalRounds, ucb1AvgRegret, totalOpt, ucb1Gain);
-        free(ucb1Gain);
+        getCompRatio(totalRounds, ucb1CompRatio, totalOpt, ucb1Gain);
+        getAvgTradeGain(totalRounds, ucb1Gain, ucb1AvgTrades, ucb1AvgTradeGain);
     }
 
+    double *ucb2Gain = malloc(totalRounds * sizeof(double));
     double *ucb2AvgRegret = malloc(totalRounds * sizeof(double));
+    double *ucb2CompRatio = malloc(totalRounds * sizeof(double));
     double *ucb2AvgTrades = malloc(totalRounds * sizeof(double));
     double *ucb2AvgThreshold = malloc(totalRounds * sizeof(double));
+    double *ucb2AvgTradeGain = malloc(totalRounds * sizeof(double));
     if (flag.ucb2) {
-        double *ucb2Gain = malloc(totalRounds * sizeof(double));
 
         printf("Calculating UCB2...\n");
         ucb2(data, ucb2Gain, ucb2AvgThreshold, ucb2AvgTrades, totalOpt, totalThresholds, totalRounds, pricesPerRound,
              norm);
 
         getAvgRegret(totalRounds, ucb2AvgRegret, totalOpt, ucb2Gain);
-        free(ucb2Gain);
+        getCompRatio(totalRounds, ucb2CompRatio, totalOpt, ucb2Gain);
+        getAvgTradeGain(totalRounds, ucb2Gain, ucb2AvgTrades, ucb2AvgTradeGain);
     }
 
+    double *exp3Gain = malloc(totalRounds * sizeof(double));
     double *exp3AvgRegret = malloc(totalRounds * sizeof(double));
+    double *exp3CompRatio = malloc(totalRounds * sizeof(double));
     double *exp3AvgTrades = malloc(totalRounds * sizeof(double));
     double *exp3AvgThreshold = malloc(totalRounds * sizeof(double));
+    double *exp3AvgTradeGain = malloc(totalRounds * sizeof(double));
     if (flag.exp3) {
-        double *exp3Gain = malloc(totalRounds * sizeof(double));
 
         printf("Calculating EXP3...\n");
         exp3(data, exp3Gain, exp3AvgThreshold, exp3AvgTrades, totalOpt, totalThresholds, totalRounds, pricesPerRound,
              norm);
 
         getAvgRegret(totalRounds, exp3AvgRegret, totalOpt, exp3Gain);
-        free(exp3Gain);
+        getCompRatio(totalRounds, exp3CompRatio, totalOpt, exp3Gain);
+        getAvgTradeGain(totalRounds, exp3Gain, exp3AvgTrades, exp3AvgTradeGain);
     }
 
+    printf("Plotting prices...\n");
+    plotData(data, totalRounds * pricesPerRound);
+
     free(data);
+
+    printf("Plotting gains...\n");
+    plotAlgorithms("Total Gain", totalRounds, totalOpt, medianGain, greedyGain, eGreedyGain,
+                       succElimGain, ucb1Gain, ucb2Gain, exp3Gain, flag, 0);
+
     free(totalOpt);
+    free(medianGain);
+    free(greedyGain);
+    free(eGreedyGain);
+    free(succElimGain);
+    free(ucb1Gain);
+    free(ucb2Gain);
+    free(exp3Gain);
 
     uint8_t noAlgs =
             !(flag.median || flag.greedy || flag.eGreedy || flag.succElim || flag.ucb1 || flag.ucb2 || flag.exp3);
 
     if (!noAlgs) {
         printf("Plotting regret...\n");
-        plotAlgorithms("Average Regret", totalRounds, medianAvgRegret, greedyAvgRegret, eGreedyAvgRegret,
-                       succElimAvgRegret, ucb1AvgRegret, ucb2AvgRegret, exp3AvgRegret, flag, 1);
+        plotAlgorithms("Average Regret", totalRounds, nullptr, medianAvgRegret, greedyAvgRegret, eGreedyAvgRegret,
+                       succElimAvgRegret, ucb1AvgRegret, ucb2AvgRegret, exp3AvgRegret, flag, 0);
     }
 
     free(medianAvgRegret);
@@ -300,9 +336,23 @@ int main(int argc, char **argv) {
     free(exp3AvgRegret);
 
     if (!noAlgs) {
+        printf("Plotting competitive ratio...\n");
+        plotAlgorithms("Competitive Ratio", totalRounds, nullptr, medianCompRatio, greedyCompRatio, eGreedyCompRatio,
+                       succElimCompRatio, ucb1CompRatio, ucb2CompRatio, exp3CompRatio, flag, 0);
+    }
+
+    free(medianCompRatio);
+    free(greedyCompRatio);
+    free(eGreedyCompRatio);
+    free(succElimCompRatio);
+    free(ucb1CompRatio);
+    free(ucb2CompRatio);
+    free(exp3CompRatio);
+
+    if (!noAlgs) {
         printf("Plotting average threshold...\n");
-        plotAlgorithms("Average Threshold", totalRounds, medianAvgThreshold, greedyAvgThreshold, eGreedyAvgThreshold,
-                       succElimAvgThreshold, ucb1AvgThreshold, ucb2AvgThreshold, exp3AvgThreshold, flag, 1);
+        plotAlgorithms("Average Threshold", totalRounds, nullptr, medianAvgThreshold, greedyAvgThreshold, eGreedyAvgThreshold,
+                       succElimAvgThreshold, ucb1AvgThreshold, ucb2AvgThreshold, exp3AvgThreshold, flag, 0);
     }
 
     free(medianAvgThreshold);
@@ -314,9 +364,9 @@ int main(int argc, char **argv) {
     free(exp3AvgThreshold);
 
     if (!noAlgs) {
-        printf("Plotting average number of items...\n");
-        plotAlgorithms("Average number of items sold per round", totalRounds, medianAvgTrades, greedyAvgTrades,
-                       eGreedyAvgTrades, succElimAvgTrades, ucb1AvgTrades, ucb2AvgTrades, exp3AvgTrades, flag, 0);
+        printf("Plotting average number of trades...\n");
+        plotAlgorithms("Average Number of Trades", totalRounds, nullptr, medianAvgTrades, greedyAvgTrades, eGreedyAvgTrades,
+                       succElimAvgTrades, ucb1AvgTrades, ucb2AvgTrades, exp3AvgTrades, flag, 0);
     }
 
     free(medianAvgTrades);
@@ -326,6 +376,21 @@ int main(int argc, char **argv) {
     free(ucb1AvgTrades);
     free(ucb2AvgTrades);
     free(exp3AvgTrades);
+
+    if (!noAlgs) {
+        printf("Plotting average gain per trade...\n");
+        plotAlgorithms("Average Gain per Trade", totalRounds, nullptr, medianAvgTradeGain, greedyAvgTradeGain,
+                       eGreedyAvgTradeGain, succElimAvgTradeGain, ucb1AvgTradeGain, ucb2AvgTradeGain, exp3AvgTradeGain,
+                       flag, 0);
+    }
+
+    free(medianAvgTradeGain);
+    free(greedyAvgTradeGain);
+    free(eGreedyAvgTradeGain);
+    free(succElimAvgTradeGain);
+    free(ucb1AvgTradeGain);
+    free(ucb2AvgTradeGain);
+    free(exp3AvgTradeGain);
 
     return 0;
 }

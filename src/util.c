@@ -16,8 +16,8 @@ void initThreshold(Threshold *thres, uint32_t totalThresholds) {
 }
 
 double runRound(Threshold *thres, uint32_t th, uint64_t totalRounds, uint64_t pricesPerRound, double *data,
-              double *avgThreshold, double *avgTrades, double *totalGain, uint64_t round, uint8_t *heldItems,
-              double norm) {
+                double *avgThreshold, double *avgTrades, double *totalGain, uint64_t round, uint8_t *heldItems,
+                double norm) {
     double gain = 0;
     double threshold = thres[th].threshold / norm;
     avgTrades[round] = 0;
@@ -66,7 +66,43 @@ void getAvgRegret(uint64_t totalRounds, double *algAvgRegret, double *totalOpt, 
     }
 }
 
-void plotAlgorithms(char *ylabel, uint64_t totalRounds, double *median, double *greedy, double *eGreedy,
+void getCompRatio(uint64_t totalRounds, double *algCompRatio, double *totalOpt, double *algGain) {
+    for (uint64_t t = 0; t < totalRounds; t++) {
+        algCompRatio[t] = algGain[t] / totalOpt[t];
+    }
+}
+
+void getAvgTradeGain(uint64_t totalRounds, double *algGain, double *algAvgTrades, double *algAvgTradeGain) {
+    for (uint64_t t = 0; t < totalRounds; t++) {
+        algAvgTradeGain[t] = algGain[t] / (algAvgTrades[t] * (t + 1));
+    }
+}
+
+void plotData(double *data, uint64_t size) {
+    uint32_t step = 1;
+    // bigger step if the dataset is bigger, makes plot way faster
+    if (size > 10000) {
+        step = size / 10000;
+    }
+
+    FILE *gnuplot = popen("gnuplot -persistent", "w");
+    if (!gnuplot) {
+        exit(1);
+    }
+
+    fprintf(gnuplot, "set ylabel 'Price'\n");
+    fprintf(gnuplot, "set grid\n");
+    fprintf(gnuplot, "plot '-' using 1:2 with lines lc rgb 'black' lw 0.5 title 'Price'\n");
+
+    for (int i = 0; i < size; i += step) {
+        fprintf(gnuplot, "%d %lf\n", i, data[i]);
+    }
+    fprintf(gnuplot, "e\n");
+    fflush(gnuplot);
+    pclose(gnuplot);
+}
+
+void plotAlgorithms(char *ylabel, uint64_t totalRounds, double *opt, double *median, double *greedy, double *eGreedy,
                     double *succElim, double *ucb1, double *ucb2, double *exp3, Flag flag, uint8_t bounded) {
     uint32_t step = 1;
     // bigger step if the dataset is bigger, makes plot way faster
@@ -89,8 +125,12 @@ void plotAlgorithms(char *ylabel, uint64_t totalRounds, double *median, double *
 
     fprintf(gnuplot, "plot ");
 
+    if (opt != NULL) {
+        fprintf(gnuplot, "'-' using 1:2 with lines lc rgb 'black' lw 1.5 title 'OPT', ");
+    }
+
     if (flag.median) {
-        fprintf(gnuplot, "'-' using 1:2 with lines lc rgb 'black' lw 1.5 title 'Median', ");
+        fprintf(gnuplot, "'-' using 1:2 with linespoints lc rgb 'black' pt 7 ps 1 pn 20 lw 1.5 title 'Median', ");
     }
 
     if (flag.greedy) {
@@ -120,51 +160,58 @@ void plotAlgorithms(char *ylabel, uint64_t totalRounds, double *median, double *
 
     fprintf(gnuplot, "\n");
 
+    if (opt != NULL) {
+        for (uint64_t t = 0; t < totalRounds; t += step) {
+            fprintf(gnuplot, "%lu %lf\n", t, opt[t]);
+        }
+        fprintf(gnuplot, "e\n");
+    }
+
     if (flag.median) {
-        for (int t = 0; t < totalRounds; t += step) {
-            fprintf(gnuplot, "%d %lf\n", t, median[t]);
+        for (uint64_t t = 0; t < totalRounds; t += step) {
+            fprintf(gnuplot, "%lu %lf\n", t, median[t]);
         }
         fprintf(gnuplot, "e\n");
     }
 
     if (flag.greedy) {
-        for (int t = 0; t < totalRounds; t += step) {
-            fprintf(gnuplot, "%d %lf\n", t, greedy[t]);
+        for (uint64_t t = 0; t < totalRounds; t += step) {
+            fprintf(gnuplot, "%lu %lf\n", t, greedy[t]);
         }
         fprintf(gnuplot, "e\n");
     }
 
     if (flag.eGreedy) {
-        for (int t = 0; t < totalRounds; t += step) {
-            fprintf(gnuplot, "%d %lf\n", t, eGreedy[t]);
+        for (uint64_t t = 0; t < totalRounds; t += step) {
+            fprintf(gnuplot, "%lu %lf\n", t, eGreedy[t]);
         }
         fprintf(gnuplot, "e\n");
     }
 
     if (flag.succElim) {
-        for (int t = 0; t < totalRounds; t += step) {
-            fprintf(gnuplot, "%d %lf\n", t, succElim[t]);
+        for (uint64_t t = 0; t < totalRounds; t += step) {
+            fprintf(gnuplot, "%lu %lf\n", t, succElim[t]);
         }
         fprintf(gnuplot, "e\n");
     }
 
     if (flag.ucb1) {
-        for (int t = 0; t < totalRounds; t += step) {
-            fprintf(gnuplot, "%d %lf\n", t, ucb1[t]);
+        for (uint64_t t = 0; t < totalRounds; t += step) {
+            fprintf(gnuplot, "%lu %lf\n", t, ucb1[t]);
         }
         fprintf(gnuplot, "e\n");
     }
 
     if (flag.ucb2) {
-        for (int t = 0; t < totalRounds; t += step) {
-            fprintf(gnuplot, "%d %lf\n", t, ucb2[t]);
+        for (uint64_t t = 0; t < totalRounds; t += step) {
+            fprintf(gnuplot, "%lu %lf\n", t, ucb2[t]);
         }
         fprintf(gnuplot, "e\n");
     }
 
     if (flag.exp3) {
-        for (int t = 0; t < totalRounds; t += step) {
-            fprintf(gnuplot, "%d %lf\n", t, exp3[t]);
+        for (uint64_t t = 0; t < totalRounds; t += step) {
+            fprintf(gnuplot, "%lu %lf\n", t, exp3[t]);
         }
         fprintf(gnuplot, "e\n");
     }

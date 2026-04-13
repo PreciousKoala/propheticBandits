@@ -56,8 +56,8 @@ void initThreshold(Threshold *thres, uint32_t totalThresholds);
  * @returns The reward of the round
  */
 double runRound(Threshold *thres, uint32_t th, uint64_t totalRounds, uint64_t pricesPerRound, double *data,
-              double *avgThreshold, double *avgTrades, double *totalGain, uint64_t round, uint8_t *heldItems,
-              double norm);
+                double *avgThreshold, double *avgTrades, double *totalGain, uint64_t round, uint8_t *heldItems,
+                double norm);
 
 /**
  * @brief Normalizes a 2D array represented in 1D in [0,1]
@@ -93,16 +93,9 @@ void calculateRewards(double *reward, double *data, uint64_t totalRounds, uint64
  */
 void getAvgRegret(uint64_t totalRounds, double *algAvgRegret, double *totalOpt, double *algGain);
 
-/**
- * @brief Calculates per day the average distance from the best threshold
- *
- * @param totalRounds The total number of rounds
- * @param algThresholdDist The array that saves the distance each round
- * @param bestAvgThreshold The array with the best average threshold of each round
- * @param algAvgThreshold The array with the average threshold chosen each round
- */
-void getBestHandDistance(uint64_t totalRounds, double *algThresholdDist, double *bestAvgThreshold,
-                         double *algAvgThreshold);
+void getCompRatio(uint64_t totalRounds, double *algCompRatio, double *totalOpt, double *algGain);
+
+void getAvgTradeGain(uint64_t totalRounds, double *algGain, double *algAvgTrades, double *algAvgTradeGain);
 
 /**
  * @brief Plots the needed information per day for each algorithm using gnuplot
@@ -115,7 +108,12 @@ void getBestHandDistance(uint64_t totalRounds, double *algThresholdDist, double 
  * been used
  * @param bounded True when the plotted values need to be bounded in [0,1]
  */
-void plotAlgorithms(char *ylabel, uint64_t totalRounds, double *median, double *greedy, double *eGreedy,
+void plotAlgorithms(char *ylabel, uint64_t totalRounds, double *opt, double *median, double *greedy, double *eGreedy,
                     double *succElim, double *ucb1, double *ucb2, double *exp3, Flag flag, uint8_t bounded);
+
+void plotAll(uint64_t totalRounds, double *opt, double *median, double *greedy, double *eGreedy, double *succElim,
+             double *ucb1, double *ucb2, double *exp3, Flag flag);
+
+void plotData(double *data, uint64_t size);
 
 #endif
