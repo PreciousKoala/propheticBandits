@@ -138,7 +138,9 @@ int main(int argc, char **argv) {
 
     printf("Calculating optimal result (local extrema)...\n");
     double *totalOpt = malloc(totalRounds * sizeof(double));
-    findOpt(data, totalOpt, totalRounds, pricesPerRound);
+    double *optAvgTrades = malloc(totalRounds * sizeof(double));
+    double *optAvgTradeGain = malloc(totalRounds * sizeof(double));
+    findOpt(data, totalOpt, optAvgTrades, optAvgTradeGain, totalRounds, pricesPerRound);
 
     /*
      * Both bandit algorithms and trading prophets benefit greatly when X_i belongs in [0,1], especially when analyzing
@@ -173,6 +175,8 @@ int main(int argc, char **argv) {
     for (int i = 0; i < totalRounds * pricesPerRound; i++) {
         data[i] = data[i] / norm;
     }
+
+    getAvgTradeGain(totalRounds, totalOpt, optAvgTrades, optAvgTradeGain);
 
     printf("\n");
     printf("---------------------------------LOCAL-EXTREMA-----------------------"
@@ -306,8 +310,8 @@ int main(int argc, char **argv) {
     free(data);
 
     printf("Plotting gains...\n");
-    plotAlgorithms("Total Gain", totalRounds, totalOpt, medianGain, greedyGain, eGreedyGain,
-                       succElimGain, ucb1Gain, ucb2Gain, exp3Gain, flag, 0);
+    plotAlgorithms("Total Gain", totalRounds, totalOpt, medianGain, greedyGain, eGreedyGain, succElimGain, ucb1Gain,
+                   ucb2Gain, exp3Gain, flag, 0);
 
     free(totalOpt);
     free(medianGain);
@@ -351,8 +355,9 @@ int main(int argc, char **argv) {
 
     if (!noAlgs) {
         printf("Plotting average threshold...\n");
-        plotAlgorithms("Average Threshold", totalRounds, nullptr, medianAvgThreshold, greedyAvgThreshold, eGreedyAvgThreshold,
-                       succElimAvgThreshold, ucb1AvgThreshold, ucb2AvgThreshold, exp3AvgThreshold, flag, 0);
+        plotAlgorithms("Average Threshold", totalRounds, nullptr, medianAvgThreshold, greedyAvgThreshold,
+                       eGreedyAvgThreshold, succElimAvgThreshold, ucb1AvgThreshold, ucb2AvgThreshold, exp3AvgThreshold,
+                       flag, 0);
     }
 
     free(medianAvgThreshold);
@@ -365,10 +370,11 @@ int main(int argc, char **argv) {
 
     if (!noAlgs) {
         printf("Plotting average number of trades...\n");
-        plotAlgorithms("Average Number of Trades", totalRounds, nullptr, medianAvgTrades, greedyAvgTrades, eGreedyAvgTrades,
-                       succElimAvgTrades, ucb1AvgTrades, ucb2AvgTrades, exp3AvgTrades, flag, 0);
+        plotAlgorithms("Average Number of Trades", totalRounds, optAvgTrades, medianAvgTrades, greedyAvgTrades,
+                       eGreedyAvgTrades, succElimAvgTrades, ucb1AvgTrades, ucb2AvgTrades, exp3AvgTrades, flag, 0);
     }
 
+    free(optAvgTrades);
     free(medianAvgTrades);
     free(greedyAvgTrades);
     free(eGreedyAvgTrades);
@@ -379,11 +385,12 @@ int main(int argc, char **argv) {
 
     if (!noAlgs) {
         printf("Plotting average gain per trade...\n");
-        plotAlgorithms("Average Gain per Trade", totalRounds, nullptr, medianAvgTradeGain, greedyAvgTradeGain,
+        plotAlgorithms("Average Gain per Trade", totalRounds, optAvgTradeGain, medianAvgTradeGain, greedyAvgTradeGain,
                        eGreedyAvgTradeGain, succElimAvgTradeGain, ucb1AvgTradeGain, ucb2AvgTradeGain, exp3AvgTradeGain,
                        flag, 0);
     }
 
+    free(optAvgTradeGain);
     free(medianAvgTradeGain);
     free(greedyAvgTradeGain);
     free(eGreedyAvgTradeGain);

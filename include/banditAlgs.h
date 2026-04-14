@@ -3,10 +3,8 @@
 
 #include <stdint.h>
 
-void findOpt(double *data, double *totalOpt, uint64_t totalRounds, uint64_t pricesPerRound);
-
-void findBestHand(double *reward, double *totalOpt, double *bestThreshold, uint64_t totalRounds,
-                  uint32_t totalThresholds);
+void findOpt(double *data, double *totalOpt, double *avgTrades, double *avgTradeGain, uint64_t totalRounds,
+             uint64_t pricesPerRound);
 
 void median(double *data, double *totalGain, double *avgThreshold, double *avgTrades, double *totalOpt,
             uint64_t totalRounds, uint64_t pricesPerRound, double norm);
