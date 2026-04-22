@@ -8,7 +8,7 @@
 #include <util.h>
 
 void exp3(double *data, double *totalGain, double *avgThreshold, double *avgTrades, double *totalOpt,
-          uint32_t totalThresholds, uint64_t totalRounds, uint64_t pricesPerRound, double norm) {
+          uint32_t totalThresholds, uint64_t totalRounds, uint64_t pricesPerRound) {
     /**
      * INFO: The exp3 algorithm in short:
      *
@@ -44,13 +44,14 @@ void exp3(double *data, double *totalGain, double *avgThreshold, double *avgTrad
     gsl_rng_env_setup();
     T = gsl_rng_default;
     r = gsl_rng_alloc(T);
-    gsl_rng_set(r, time(NULL));
+    gsl_rng_set(r, time(nullptr));
 
     Threshold *thres = malloc(totalThresholds * sizeof(Threshold));
     initThreshold(thres, totalThresholds);
 
     totalGain[0] = 0;
     uint8_t heldItems = 0;
+    double heldItemValue;
 
     // threshold weights must be long double to prevent errors with very large
     // datasets probably doesn't work on windows but oh well
@@ -59,13 +60,32 @@ void exp3(double *data, double *totalGain, double *avgThreshold, double *avgTrad
         thresholdWeight[th] = 1;
     }
 
+    // long double *estimTotalGain = malloc(totalThresholds * sizeof(long double));
+    // long double maxEstim = 0;
+    // for (uint32_t th = 0; th < totalThresholds; th++) {
+    //     estimTotalGain[th] = 0;
+    // }
+
+    long double norm = 1;
+
     long double weightSum = 0;
+    long double gamma = 1;
+    // int rho = 0;
     for (uint64_t t = 0; t < totalRounds; t++) {
         // upper bound is variable for easier future changes
+
+        // double upperBound = (double)totalRounds;
+        // double upperBound = (totalThresholds * log(totalThresholds) / (M_E - 1)) * pow(4, rho);
         double upperBound = pow(2.0, ceil(log2((double) t + 1.0)));
-        long double gamma = sqrt(totalThresholds * log(totalThresholds) / ((M_E - 1) * upperBound));
-        if (gamma > 1)
-            gamma = 1;
+        // double upperBound = t + 1;
+
+        gamma = sqrt(totalThresholds * log(totalThresholds) / ((M_E - 1) * upperBound));
+        gamma = fminl(gamma, 1);
+
+        // if (maxEstim > upperBound - totalThresholds / gamma) {
+        // rho++;
+        // gamma /= 2;
+        // }
 
         weightSum = 0;
         for (uint32_t th = 0; th < totalThresholds; th++) {
@@ -75,32 +95,49 @@ void exp3(double *data, double *totalGain, double *avgThreshold, double *avgTrad
         // pick threshold according to probabilities (no need to calculate them all)
         // initialize chosenTh as the last threshold incase something goes wrong
         uint32_t chosenTh = totalThresholds - 1;
-        double randomNumber = gsl_rng_uniform(r);
+        long double randomNumber = gsl_rng_uniform(r);
         long double thresholdProb = 0;
         for (uint32_t th = 0; th < totalThresholds; th++) {
             thresholdProb = (1 - gamma) * (thresholdWeight[th] / weightSum) + gamma / totalThresholds;
             if (randomNumber < thresholdProb) {
                 chosenTh = th;
                 break;
-            } else {
-                randomNumber -= thresholdProb;
             }
+            randomNumber -= thresholdProb;
         }
 
         // weight only changes for the chosen threshold
-        double gain = runRound(thres, chosenTh, totalRounds, pricesPerRound, data, avgThreshold, avgTrades, totalGain,
-                               t, &heldItems, norm);
-        double estimatedReward = gain / thresholdProb;
+        long double gain = runRound(thres, chosenTh, totalRounds, pricesPerRound, data, avgThreshold, avgTrades,
+                                    totalGain, t, &heldItems, &heldItemValue);
+
+        long double estimatedReward = fmaxl(gain, 0) / (norm * thresholdProb);
         thresholdWeight[chosenTh] *= expl(gamma * estimatedReward / totalThresholds);
+
+        if (t > 0) {
+            if (norm < gain) {
+                long double oldMaxOpt = norm;
+                norm = gain;
+                for (uint32_t th = 0; th < totalThresholds; th++) {
+                    thresholdWeight[th] = powl(thresholdWeight[th], oldMaxOpt / norm);
+                }
+            }
+        }
+
+        // maxEstim = totalOpt[t];
+
+        // estimTotalGain[chosenTh] += estimatedReward;
+        // if (maxEstim < estimTotalGain[chosenTh]) {
+        // maxEstim = estimTotalGain[chosenTh];
+        // }
     }
 
+
     printf("\n");
+    // printf("%d\n", rho);
     printf("---------------------------------------------EXP3--------------------"
            "-----------------------\n");
     printf("Threshold\tTotal Reward\tTimes Chosen\tAverage "
            "Reward\tFinal Weight\tProbability\n");
-
-    long double gamma = sqrt((totalThresholds * log(totalThresholds)) / ((M_E - 1) * totalRounds));
 
     for (int32_t th = 0; th < totalThresholds; th++) {
         long double thresholdProb = (1 - gamma) * (thresholdWeight[th] / weightSum) + gamma / totalThresholds;
@@ -115,13 +152,15 @@ void exp3(double *data, double *totalGain, double *avgThreshold, double *avgTrad
     printf("Total Gain: %lf\n", totalGain[totalRounds - 1]);
     printf("Total OPT: %lf\n", totalOpt[totalRounds - 1]);
     printf("Total Regret: %lf\n", totalOpt[totalRounds - 1] - totalGain[totalRounds - 1]);
-    printf("Average Gain: %lf\n", totalGain[totalRounds - 1] / totalRounds);
-    printf("Average OPT: %lf\n", totalOpt[totalRounds - 1] / totalRounds);
-    printf("Average Regret: %lf\n", (totalOpt[totalRounds - 1] - totalGain[totalRounds - 1]) / totalRounds);
+    printf("Average Gain: %lf\n", totalGain[totalRounds - 1] / (double) totalRounds);
+    printf("Average OPT: %lf\n", totalOpt[totalRounds - 1] / (double) totalRounds);
+    printf("Average Regret: %lf\n", (totalOpt[totalRounds - 1] - totalGain[totalRounds - 1]) / (double) totalRounds);
+    printf("Competitive Ratio: %lf\n", totalGain[totalRounds - 1] / totalOpt[totalRounds - 1]);
     printf("---------------------------------------------------------------------"
            "-----------------------\n\n");
 
     gsl_rng_free(r);
     free(thresholdWeight);
+    // free(estimTotalGain);
     free(thres);
 }

@@ -7,7 +7,7 @@
 #include <util.h>
 
 void ucb2(double *data, double *totalGain, double *avgThreshold, double *avgTrades, double *totalOpt,
-          uint32_t totalThresholds, uint64_t totalRounds, uint64_t pricesPerRound, double norm) {
+          uint32_t totalThresholds, uint64_t totalRounds, uint64_t pricesPerRound) {
     /**
      * INFO: The ucb2 algorithm in short:
      *
@@ -35,15 +35,21 @@ void ucb2(double *data, double *totalGain, double *avgThreshold, double *avgTrad
 
     totalGain[0] = 0;
     uint8_t heldItems = 0;
+    double heldItemValue;
 
     uint32_t chosenTh = 0;
     double *upperConfBound = malloc(totalThresholds * sizeof(double));
     // r_j
     uint32_t *epochsChosen = malloc(totalThresholds * sizeof(double));
 
-    for (uint8_t t = 0; t < totalThresholds; t++) {
+    double norm = -INFINITY;
+    for (uint32_t t = 0; t < totalThresholds; t++) {
         epochsChosen[t] = 0;
-        runRound(thres, t, totalRounds, pricesPerRound, data, avgThreshold, avgTrades, totalGain, t, &heldItems, norm);
+        double gain = runRound(thres, t, totalRounds, pricesPerRound, data, avgThreshold, avgTrades, totalGain, t,
+                               &heldItems, &heldItemValue);
+        if (norm < gain) {
+            norm = gain;
+        }
     }
 
     uint64_t t = totalThresholds;
@@ -53,9 +59,9 @@ void ucb2(double *data, double *totalGain, double *avgThreshold, double *avgTrad
         chosenTh = 0;
 
         for (uint32_t th = 0; th < totalThresholds; th++) {
-            uint64_t tau = (uint64_t) ceil(pow((1 + alpha), epochsChosen[th]));
-            double average = thres[th].avgReward;
-            double confRadius = sqrt((1 + alpha) * log(M_E * (t + 1) / tau) / (2 * tau));
+            double tau = ceil(pow((1 + alpha), epochsChosen[th]));
+            double average = fmax(thres[th].avgReward / norm, 0);
+            double confRadius = sqrt((1 + alpha) * log(M_E * ((double) t + 1) / tau) / (2 * tau));
             upperConfBound[th] = average + confRadius;
 
             if (upperConfBound[th] > max) {
@@ -69,8 +75,11 @@ void ucb2(double *data, double *totalGain, double *avgThreshold, double *avgTrad
                           (uint64_t) ceil(pow((1 + alpha), epochsChosen[chosenTh]));
 
         while (t < totalRounds && repeat > 0) {
-            runRound(thres, chosenTh, totalRounds, pricesPerRound, data, avgThreshold, avgTrades, totalGain, t,
-                     &heldItems, norm);
+            double gain = runRound(thres, chosenTh, totalRounds, pricesPerRound, data, avgThreshold, avgTrades,
+                                   totalGain, t, &heldItems, &heldItemValue);
+            if (norm < gain) {
+                norm = gain;
+            }
             t++;
             repeat--;
         }
@@ -98,9 +107,10 @@ void ucb2(double *data, double *totalGain, double *avgThreshold, double *avgTrad
     printf("Total Gain: %lf\n", totalGain[totalRounds - 1]);
     printf("Total OPT: %lf\n", totalOpt[totalRounds - 1]);
     printf("Total Regret: %lf\n", totalOpt[totalRounds - 1] - totalGain[totalRounds - 1]);
-    printf("Average Gain: %lf\n", totalGain[totalRounds - 1] / totalRounds);
-    printf("Average OPT: %lf\n", totalOpt[totalRounds - 1] / totalRounds);
-    printf("Average Regret: %lf\n", (totalOpt[totalRounds - 1] - totalGain[totalRounds - 1]) / totalRounds);
+    printf("Average Gain: %lf\n", totalGain[totalRounds - 1] / (double) totalRounds);
+    printf("Average OPT: %lf\n", totalOpt[totalRounds - 1] / (double) totalRounds);
+    printf("Average Regret: %lf\n", (totalOpt[totalRounds - 1] - totalGain[totalRounds - 1]) / (double) totalRounds);
+    printf("Competitive Ratio: %lf\n", totalGain[totalRounds - 1] / totalOpt[totalRounds - 1]);
     printf("---------------------------------------------------------------------"
            "-------------------------------------------------\n\n");
 

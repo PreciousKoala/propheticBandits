@@ -4,11 +4,9 @@
 
 #include <util.h>
 
-#include <math.h>
-
 void initThreshold(Threshold *thres, uint32_t totalThresholds) {
     for (uint32_t th = 0; th < totalThresholds; th++) {
-        thres[th].threshold = (double) (th + 0.5) / totalThresholds;
+        thres[th].threshold = (th + 1.0) / (totalThresholds + 1.0);
         thres[th].rewardSum = 0;
         thres[th].timesChosen = 0;
         thres[th].avgReward = 0;
@@ -17,18 +15,18 @@ void initThreshold(Threshold *thres, uint32_t totalThresholds) {
 
 double runRound(Threshold *thres, uint32_t th, uint64_t totalRounds, uint64_t pricesPerRound, double *data,
                 double *avgThreshold, double *avgTrades, double *totalGain, uint64_t round, uint8_t *heldItems,
-                double norm) {
+                double *heldItemValue) {
     double gain = 0;
-    double threshold = thres[th].threshold / norm;
+    double threshold = thres[th].threshold;
     avgTrades[round] = 0;
 
     for (uint64_t i = round * pricesPerRound; i < (round + 1) * pricesPerRound; i++) {
         if ((i == totalRounds * pricesPerRound - 1 || data[i] >= threshold) && *heldItems == 1) {
-            gain += data[i];
+            gain += data[i] - *heldItemValue;
             *heldItems = 0;
             avgTrades[round]++;
         } else if (data[i] < threshold && *heldItems == 0) {
-            gain -= data[i];
+            *heldItemValue = data[i];
             *heldItems = 1;
         }
     }
@@ -57,6 +55,12 @@ double runRound(Threshold *thres, uint32_t th, uint64_t totalRounds, uint64_t pr
 void normalizePrices(double min, double max, double *data, uint64_t size) {
     for (uint64_t t = 0; t < size; t++) {
         data[t] = (data[t] - min) / (max - min);
+    }
+}
+
+void getAvgGain(uint64_t size, double *avgGain, double *totalGain) {
+    for (uint64_t i = 0; i < size; i++) {
+        avgGain[i] = totalGain[i] / (double) (i + 1);
     }
 }
 
@@ -92,6 +96,7 @@ void plotData(double *data, uint64_t size) {
 
     fprintf(gnuplot, "set ylabel 'Price'\n");
     fprintf(gnuplot, "set grid\n");
+    fprintf(gnuplot, "set yrange [0:1]\n");
     fprintf(gnuplot, "plot '-' using 1:2 with lines lc rgb 'black' lw 0.5 title 'Price'\n");
 
     for (int i = 0; i < size; i += step) {
@@ -120,6 +125,9 @@ void plotAlgorithms(char *ylabel, uint64_t totalRounds, double *opt, double *med
     fprintf(gnuplot, "'\n");
     if (bounded)
         fprintf(gnuplot, "set yrange [0:1]\n");
+    else
+        fprintf(gnuplot, "set yrange [0:]\n");
+
     fprintf(gnuplot, "set grid\n");
     fprintf(gnuplot, "set key right top spacing .5 font ',8'\n");
 

@@ -7,7 +7,7 @@
 #include <util.h>
 
 void succElim(double *data, double *totalGain, double *avgThreshold, double *avgTrades, double *totalOpt,
-              uint32_t totalThresholds, uint64_t totalRounds, uint64_t pricesPerRound, double norm) {
+              uint32_t totalThresholds, uint64_t totalRounds, uint64_t pricesPerRound) {
     /**
      * INFO: The Successive Elimination algorithm in short:
      *
@@ -32,6 +32,7 @@ void succElim(double *data, double *totalGain, double *avgThreshold, double *avg
 
     totalGain[0] = 0;
     uint8_t heldItems = 0;
+    double heldItemValue;
 
     double *upperConfBound = malloc(totalThresholds * sizeof(double));
     double *lowerConfBound = malloc(totalThresholds * sizeof(double));
@@ -41,12 +42,17 @@ void succElim(double *data, double *totalGain, double *avgThreshold, double *avg
         thresActive[th] = 1;
     }
 
+    double norm = -INFINITY;
+
     uint64_t t = 0;
     while (t < totalRounds) {
         for (uint32_t th = 0; th < totalThresholds && t < totalRounds; th++) {
             if (thresActive[th]) {
-                runRound(thres, th, totalRounds, pricesPerRound, data, avgThreshold, avgTrades, totalGain, t,
-                         &heldItems, norm);
+                double gain = runRound(thres, th, totalRounds, pricesPerRound, data, avgThreshold, avgTrades, totalGain,
+                                       t, &heldItems, &heldItemValue);
+                if (norm < gain) {
+                    norm = gain;
+                }
                 t++;
             }
         }
@@ -54,8 +60,8 @@ void succElim(double *data, double *totalGain, double *avgThreshold, double *avg
         double maxLCB = -INFINITY;
         for (uint32_t th = 0; th < totalThresholds; th++) {
             if (thresActive[th]) {
-                double average = thres[th].avgReward;
-                double confRadius = sqrt(2 * log(t + 1) / thres[th].timesChosen);
+                double average = fmax(thres[th].avgReward / norm, 0);
+                double confRadius = sqrt(2 * log((double) t + 1) / (double) thres[th].timesChosen);
 
                 upperConfBound[th] = average + confRadius;
                 lowerConfBound[th] = average - confRadius;
@@ -89,9 +95,10 @@ void succElim(double *data, double *totalGain, double *avgThreshold, double *avg
     printf("Total Gain: %lf\n", totalGain[totalRounds - 1]);
     printf("Total OPT: %lf\n", totalOpt[totalRounds - 1]);
     printf("Total Regret: %lf\n", totalOpt[totalRounds - 1] - totalGain[totalRounds - 1]);
-    printf("Average Gain: %lf\n", totalGain[totalRounds - 1] / totalRounds);
-    printf("Average OPT: %lf\n", totalOpt[totalRounds - 1] / totalRounds);
-    printf("Average Regret: %lf\n", (totalOpt[totalRounds - 1] - totalGain[totalRounds - 1]) / totalRounds);
+    printf("Average Gain: %lf\n", totalGain[totalRounds - 1] / (double) totalRounds);
+    printf("Average OPT: %lf\n", totalOpt[totalRounds - 1] / (double) totalRounds);
+    printf("Average Regret: %lf\n", (totalOpt[totalRounds - 1] - totalGain[totalRounds - 1]) / (double) totalRounds);
+    printf("Competitive Ratio: %lf\n", totalGain[totalRounds - 1] / totalOpt[totalRounds - 1]);
     printf("---------------------------------------------------------------------"
            "---------------------------------\n\n");
 

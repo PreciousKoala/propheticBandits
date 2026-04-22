@@ -6,7 +6,7 @@
 #include <util.h>
 
 void epsilonGreedy(double *data, double *totalGain, double *avgThreshold, double *avgTrades, double *totalOpt,
-                   uint32_t totalThresholds, uint64_t totalRounds, uint64_t pricesPerRound, double norm) {
+                   uint32_t totalThresholds, uint64_t totalRounds, uint64_t pricesPerRound) {
     /**
      * INFO: The epsilon greedy algorithm in short:
      *
@@ -31,7 +31,7 @@ void epsilonGreedy(double *data, double *totalGain, double *avgThreshold, double
     gsl_rng_env_setup();
     T = gsl_rng_default;
     r = gsl_rng_alloc(T);
-    gsl_rng_set(r, time(NULL));
+    gsl_rng_set(r, time(nullptr));
 
     Threshold *thres = malloc(totalThresholds * sizeof(Threshold));
     initThreshold(thres, totalThresholds);
@@ -40,10 +40,14 @@ void epsilonGreedy(double *data, double *totalGain, double *avgThreshold, double
     uint64_t exploit = 0;
     totalGain[0] = 0;
     uint8_t heldItems = 0;
+    double heldItemValue;
+    double exploreProb = 1;
 
     for (uint64_t t = 0; t < totalRounds; t++) {
-        double exploreProb = cbrt(totalThresholds * log(pow(2.0, ceil(log2((double) t + 1.0)))) / (t + 1));
-        // double exploreProb = cbrt(totalThresholds * log(t + 1)) / (t + 1);
+        // exploreProb = cbrt(totalThresholds * log(pow(2.0, ceil(log2((double) t + 1.0)))) / (double) (t + 1));
+        exploreProb = cbrt(totalThresholds * log(t + 1) / (double) (t + 1));
+        // exploreProb = cbrt(totalThresholds * log(totalRounds) / (double) (t + 1));
+
         // this will be 0 in the first round, and will always explore
 
         uint32_t chosenTh;
@@ -64,8 +68,8 @@ void epsilonGreedy(double *data, double *totalGain, double *avgThreshold, double
             exploit++;
         }
 
-        runRound(thres, chosenTh, totalRounds, pricesPerRound, data, avgThreshold, avgTrades, totalGain, t,
-                 &heldItems, norm);
+        runRound(thres, chosenTh, totalRounds, pricesPerRound, data, avgThreshold, avgTrades, totalGain, t, &heldItems,
+                 &heldItemValue);
     }
 
     printf("\n");
@@ -79,15 +83,16 @@ void epsilonGreedy(double *data, double *totalGain, double *avgThreshold, double
 
     printf("---------------------------------------------------------------------"
            "-----------\n");
-    printf("Final Exploration Chance: %lf%%\n", 100 * cbrt(totalThresholds * log(totalRounds) / (totalRounds)));
+    printf("Final Exploration Chance: %lf%%\n", 100 * exploreProb);
     printf("Explored: %lu\n", explore);
     printf("Exploited: %lu\n", exploit);
     printf("Total Gain: %lf\n", totalGain[totalRounds - 1]);
     printf("Total OPT: %lf\n", totalOpt[totalRounds - 1]);
     printf("Total Regret: %lf\n", totalOpt[totalRounds - 1] - totalGain[totalRounds - 1]);
-    printf("Average Gain: %lf\n", totalGain[totalRounds - 1] / totalRounds);
-    printf("Average OPT: %lf\n", totalOpt[totalRounds - 1] / totalRounds);
-    printf("Average Regret: %lf\n", (totalOpt[totalRounds - 1] - totalGain[totalRounds - 1]) / totalRounds);
+    printf("Average Gain: %lf\n", totalGain[totalRounds - 1] / (double) totalRounds);
+    printf("Average OPT: %lf\n", totalOpt[totalRounds - 1] / (double) totalRounds);
+    printf("Average Regret: %lf\n", (totalOpt[totalRounds - 1] - totalGain[totalRounds - 1]) / (double) totalRounds);
+    printf("Competitive Ratio: %lf\n", totalGain[totalRounds - 1] / totalOpt[totalRounds - 1]);
     printf("---------------------------------------------------------------------"
            "-----------\n\n");
 

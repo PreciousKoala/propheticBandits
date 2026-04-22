@@ -7,7 +7,7 @@
 #include <util.h>
 
 void greedy(double *data, double *totalGain, double *avgThreshold, double *avgTrades, double *totalOpt,
-            uint32_t totalThresholds, uint64_t totalRounds, uint64_t pricesPerRound, double norm) {
+            uint32_t totalThresholds, uint64_t totalRounds, uint64_t pricesPerRound) {
     /**
      * INFO: The greedy algorithm in short:
      *
@@ -27,10 +27,11 @@ void greedy(double *data, double *totalGain, double *avgThreshold, double *avgTr
     uint32_t chosenTh = 0;
     totalGain[0] = 0;
     uint8_t heldItems = 0;
+    double heldItemValue;
 
     for (uint32_t t = 0; t < totalThresholds; t++) {
         runRound(thres, t, totalRounds, pricesPerRound, data, avgThreshold, avgTrades, totalGain, t, &heldItems,
-                 norm);
+                 &heldItemValue);
     }
     double max = -INFINITY;
     chosenTh = 0;
@@ -43,8 +44,8 @@ void greedy(double *data, double *totalGain, double *avgThreshold, double *avgTr
     }
 
     for (uint64_t t = totalThresholds; t < totalRounds; t++) {
-        runRound(thres, chosenTh, totalRounds, pricesPerRound, data, avgThreshold, avgTrades, totalGain, t,
-                 &heldItems, norm);
+        runRound(thres, chosenTh, totalRounds, pricesPerRound, data, avgThreshold, avgTrades, totalGain, t, &heldItems,
+                 &heldItemValue);
     }
 
     printf("\n");
@@ -61,9 +62,10 @@ void greedy(double *data, double *totalGain, double *avgThreshold, double *avgTr
     printf("Total Gain: %lf\n", totalGain[totalRounds - 1]);
     printf("Total OPT: %lf\n", totalOpt[totalRounds - 1]);
     printf("Total Regret: %lf\n", totalOpt[totalRounds - 1] - totalGain[totalRounds - 1]);
-    printf("Average Gain: %lf\n", totalGain[totalRounds - 1] / totalRounds);
-    printf("Average OPT: %lf\n", totalOpt[totalRounds - 1] / totalRounds);
-    printf("Average Regret: %lf\n", (totalOpt[totalRounds - 1] - totalGain[totalRounds - 1]) / totalRounds);
+    printf("Average Gain: %lf\n", totalGain[totalRounds - 1] / (double) totalRounds);
+    printf("Average OPT: %lf\n", totalOpt[totalRounds - 1] / (double) totalRounds);
+    printf("Average Regret: %lf\n", (totalOpt[totalRounds - 1] - totalGain[totalRounds - 1]) / (double) totalRounds);
+    printf("Competitive Ratio: %lf\n", totalGain[totalRounds - 1] / totalOpt[totalRounds - 1]);
     printf("---------------------------------------------------------------------"
            "-----------\n\n");
 

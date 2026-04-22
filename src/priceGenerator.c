@@ -127,7 +127,7 @@ int main(int argc, char *argv[]) {
     gsl_rng_env_setup();
     T = gsl_rng_default;
     r = gsl_rng_alloc(T);
-    gsl_rng_set(r, time(NULL));
+    gsl_rng_set(r, time(nullptr));
 
     struct stat st = {0};
     if (stat("prophetData", &st) == -1) {
