@@ -66,7 +66,7 @@ int main(int argc, char *argv[]) {
 
     opterr = 0;
 
-    while ((opt = getopt(argc, argv, "hrugeba:m:s:c:t:n:")) != -1) {
+    while ((opt = getopt(argc, argv, "hrugebTa:m:s:c:t:n:")) != -1) {
         switch (opt) {
             case 'h':
                 printHelp();
@@ -85,6 +85,9 @@ int main(int argc, char *argv[]) {
                 break;
             case 'b':
                 distLetter = 'b';
+                break;
+            case 'T':
+                distLetter = 'T';
                 break;
             case 'a':
                 distLetter = 'a';
@@ -221,6 +224,15 @@ int main(int argc, char *argv[]) {
             if (randomizeFlag) {
                 prob = gsl_rng_uniform(r);
             }
+        }
+    }
+
+    if (distLetter == 'T') {
+        uint64_t i = 0;
+        while (i < totalRounds * pricesPerRound) {
+            double num = (double) (i % 2);
+            fwrite(&num, sizeof(num), 1, file);
+            i++;
         }
     }
 

@@ -1,4 +1,4 @@
-FLAGS = -Wall -O3 -fsanitize=address -Iinclude
+FLAGS = -Wall -O3 -Iinclude -fsanitize=address,undefined
 LIBS = -lgsl -lgslcblas -lm
 SRC = src/propheticBandits.c src/util.c $(wildcard src/banditAlgs/*.c)
 OBJ = $(patsubst src/%.c, obj/%.o, $(SRC))

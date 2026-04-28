@@ -6,8 +6,8 @@
 #include <banditAlgs.h>
 #include <util.h>
 
-void ucb2(double *data, double *totalGain, double *avgThreshold, double *avgTrades, double *totalOpt,
-          uint32_t totalThresholds, uint64_t totalRounds, uint64_t pricesPerRound) {
+void ucb2(double *data, double *totalGain, double *avgLowThreshold, double *avgHighThreshold, double *avgTrades,
+          double *totalOpt, Bandit b) {
     /**
      * INFO: The ucb2 algorithm in short:
      *
@@ -30,35 +30,35 @@ void ucb2(double *data, double *totalGain, double *avgThreshold, double *avgTrad
      * tau(r) = ceil((1 + a)^r)
      */
 
-    Threshold *thres = malloc(totalThresholds * sizeof(Threshold));
-    initThreshold(thres, totalThresholds);
+    Threshold *thres = malloc(b.K * sizeof(Threshold));
+    initThreshold(thres, b);
 
     totalGain[0] = 0;
     uint8_t heldItems = 0;
-    double heldItemValue;
+    double heldItemValue = 0;
 
     uint32_t chosenTh = 0;
-    double *upperConfBound = malloc(totalThresholds * sizeof(double));
+    double *upperConfBound = malloc(b.K * sizeof(double));
     // r_j
-    uint32_t *epochsChosen = malloc(totalThresholds * sizeof(double));
+    uint32_t *epochsChosen = malloc(b.K * sizeof(double));
 
     double norm = -INFINITY;
-    for (uint32_t t = 0; t < totalThresholds; t++) {
+    for (uint32_t t = 0; t < b.K; t++) {
         epochsChosen[t] = 0;
-        double gain = runRound(thres, t, totalRounds, pricesPerRound, data, avgThreshold, avgTrades, totalGain, t,
+        double gain = runRound(thres, t, b, data, avgLowThreshold, avgHighThreshold, avgTrades, totalGain, t,
                                &heldItems, &heldItemValue);
         if (norm < gain) {
             norm = gain;
         }
     }
 
-    uint64_t t = totalThresholds;
-    while (t < totalRounds) {
+    uint64_t t = b.K;
+    while (t < b.T) {
         double alpha = 0.001; //(double)1 / (t + 1);
         double max = -INFINITY;
         chosenTh = 0;
 
-        for (uint32_t th = 0; th < totalThresholds; th++) {
+        for (uint32_t th = 0; th < b.K; th++) {
             double tau = ceil(pow((1 + alpha), epochsChosen[th]));
             double average = fmax(thres[th].avgReward / norm, 0);
             double confRadius = sqrt((1 + alpha) * log(M_E * ((double) t + 1) / tau) / (2 * tau));
@@ -74,9 +74,9 @@ void ucb2(double *data, double *totalGain, double *avgThreshold, double *avgTrad
         uint64_t repeat = (uint64_t) ceil(pow((1 + alpha), epochsChosen[chosenTh] + 1)) -
                           (uint64_t) ceil(pow((1 + alpha), epochsChosen[chosenTh]));
 
-        while (t < totalRounds && repeat > 0) {
-            double gain = runRound(thres, chosenTh, totalRounds, pricesPerRound, data, avgThreshold, avgTrades,
-                                   totalGain, t, &heldItems, &heldItemValue);
+        while (t < b.T && repeat > 0) {
+            double gain = runRound(thres, chosenTh, b, data, avgLowThreshold, avgHighThreshold, avgTrades, totalGain, t,
+                                   &heldItems, &heldItemValue);
             if (norm < gain) {
                 norm = gain;
             }
@@ -88,29 +88,45 @@ void ucb2(double *data, double *totalGain, double *avgThreshold, double *avgTrad
     printf("\n");
     printf("--------------------------------------------------------------UCB2---"
            "-------------------------------------------------\n");
-    printf("Threshold\tTotal Reward\tTimes Chosen\tAverage Reward\tUCB\t\t"
-           "Epochs Chosen\tAverage Epoch Duration\n");
-    for (int32_t th = 0; th < totalThresholds; th++) {
-        double epochDuration;
-        if (!epochsChosen[th]) {
-            epochDuration = 0;
-        } else {
-            epochDuration = (double) thres[th].timesChosen / epochsChosen[th];
+    if (!b.dualThres) {
+        printf("Threshold\tTotal Reward\tTimes Chosen\tAverage Reward\tUCB\t\t"
+               "Epochs Chosen\tAverage Epoch Duration\n");
+        for (int32_t th = 0; th < b.K; th++) {
+            double epochDuration;
+            if (!epochsChosen[th]) {
+                epochDuration = 0;
+            } else {
+                epochDuration = (double) thres[th].timesChosen / epochsChosen[th];
+            }
+            printf("%-7.2lf\t\t%-10.2lf\t%-12lu\t%-8.6lf\t%-10.5lf\t%-13u\t%-.5lf\n", thres[th].low,
+                   thres[th].rewardSum, thres[th].timesChosen, thres[th].avgReward, upperConfBound[th],
+                   epochsChosen[th], epochDuration);
         }
-        printf("%-7.2lf\t\t%-10.2lf\t%-12lu\t%-8.6lf\t%-10.5lf\t%-13u\t%-.5lf\n", thres[th].threshold,
-               thres[th].rewardSum, thres[th].timesChosen, thres[th].avgReward, upperConfBound[th], epochsChosen[th],
-               epochDuration);
+    } else {
+        printf("Low Thres\tHigh Thres\tTotal Reward\tTimes Chosen\tAverage Reward\tUCB\t\t"
+               "Epochs Chosen\tAverage Epoch Duration\n");
+        for (int32_t th = 0; th < b.K; th++) {
+            double epochDuration;
+            if (!epochsChosen[th]) {
+                epochDuration = 0;
+            } else {
+                epochDuration = (double) thres[th].timesChosen / epochsChosen[th];
+            }
+            printf("%-7.2lf\t\t%-7.2lf\t\t%-10.2lf\t%-12lu\t%-8.6lf\t%-10.5lf\t%-13u\t%-.5lf\n", thres[th].low,
+                   thres[th].high, thres[th].rewardSum, thres[th].timesChosen, thres[th].avgReward, upperConfBound[th],
+                   epochsChosen[th], epochDuration);
+        }
     }
 
     printf("---------------------------------------------------------------------"
            "-------------------------------------------------\n");
-    printf("Total Gain: %lf\n", totalGain[totalRounds - 1]);
-    printf("Total OPT: %lf\n", totalOpt[totalRounds - 1]);
-    printf("Total Regret: %lf\n", totalOpt[totalRounds - 1] - totalGain[totalRounds - 1]);
-    printf("Average Gain: %lf\n", totalGain[totalRounds - 1] / (double) totalRounds);
-    printf("Average OPT: %lf\n", totalOpt[totalRounds - 1] / (double) totalRounds);
-    printf("Average Regret: %lf\n", (totalOpt[totalRounds - 1] - totalGain[totalRounds - 1]) / (double) totalRounds);
-    printf("Competitive Ratio: %lf\n", totalGain[totalRounds - 1] / totalOpt[totalRounds - 1]);
+    printf("Total Gain: %lf\n", totalGain[b.T - 1]);
+    printf("Total OPT: %lf\n", totalOpt[b.T - 1]);
+    printf("Total Regret: %lf\n", totalOpt[b.T - 1] - totalGain[b.T - 1]);
+    printf("Average Gain: %lf\n", totalGain[b.T - 1] / (double) b.T);
+    printf("Average OPT: %lf\n", totalOpt[b.T - 1] / (double) b.T);
+    printf("Average Regret: %lf\n", (totalOpt[b.T - 1] - totalGain[b.T - 1]) / (double) b.T);
+    printf("Competitive Ratio: %lf\n", totalGain[b.T - 1] / totalOpt[b.T - 1]);
     printf("---------------------------------------------------------------------"
            "-------------------------------------------------\n\n");
 

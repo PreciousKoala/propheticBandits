@@ -3,7 +3,21 @@
 
 #include <stdint.h>
 
-typedef struct flagStruct {
+/**
+ * @typedef banditStruct
+ * @brief A struct that holds flags and information about the data
+ *
+ */
+typedef struct banditStruct {
+    uint64_t T;
+    uint64_t N;
+    uint32_t K;
+    uint32_t thresholds;
+    uint8_t dualThres;
+    uint8_t medianOpt;
+    double medianPrice;
+    uint8_t bestHandOpt;
+    uint8_t keepItems;
     uint8_t median;
     uint8_t greedy;
     uint8_t eGreedy;
@@ -11,7 +25,7 @@ typedef struct flagStruct {
     uint8_t ucb1;
     uint8_t ucb2;
     uint8_t exp3;
-} Flag;
+} Bandit;
 
 /**
  * @typedef thresholdStruct
@@ -19,8 +33,9 @@ typedef struct flagStruct {
  *
  */
 typedef struct thresholdStruct {
-    // the placement of the threshold in [0,1]
-    double threshold;
+    // the placement of the thresholds in [0,1]
+    double low;
+    double high;
     // how much money the threshold has made
     double rewardSum;
     // how many times the threshold has been picked
@@ -35,7 +50,7 @@ typedef struct thresholdStruct {
  * @param thres The Threshold struct array
  * @param totalThresholds The size of the array
  */
-void initThreshold(Threshold *thres, uint32_t totalThresholds);
+void initThreshold(Threshold *thres, Bandit b);
 
 /**
  * @brief Updates the threhold array's values for the specific threshold that
@@ -43,8 +58,6 @@ void initThreshold(Threshold *thres, uint32_t totalThresholds);
  *
  * @param thres Threshold array
  * @param th The chosen threshold
- * @param totalRounds The number of rounds
- * @param pricesPerRound The number of prices per round
  * @param data The array with the prices
  * @param avgThreshold The array that holds the average chosen threshold of each round
  * @param avgTrades The array that holds the average number of trades (selling an item) up to the current round
@@ -55,9 +68,8 @@ void initThreshold(Threshold *thres, uint32_t totalThresholds);
  *
  * @returns The reward of the round
  */
-double runRound(Threshold *thres, uint32_t th, uint64_t totalRounds, uint64_t pricesPerRound, double *data,
-                double *avgThreshold, double *avgTrades, double *totalGain, uint64_t round, uint8_t *heldItems,
-                double *heldItemValue);
+double runRound(Threshold *thres, uint32_t th, Bandit b, double *data, double *avgLowThreshold, double *avgHighThreshold, double *avgTrades,
+                double *totalGain, uint64_t round, uint8_t *heldItems, double *heldItemValue);
 
 /**
  * @brief Normalizes a 2D array represented in 1D in [0,1]
@@ -68,18 +80,6 @@ double runRound(Threshold *thres, uint32_t th, uint64_t totalRounds, uint64_t pr
  * @param size The size of the array
  */
 void normalizePrices(double min, double max, double *data, uint64_t size);
-
-/**
- * @brief Calculates the reward for each threshold, for each day
- *
- * @param reward The TxK array that the calculated values are stored in
- * @param data The TxN array that holds the prices
- * @param totalRounds The total number of rounds T
- * @param pricesPerRound The total number of prices per round N
- * @param totalThresholds The total number of thresholds K
- */
-void calculateRewards(double *reward, double *data, uint64_t totalRounds, uint64_t pricesPerRound,
-                      uint32_t totalThresholds);
 
 /**
  * @brief Calculates the average regret pre round for a specific algorithm
@@ -110,11 +110,8 @@ void getAvgTradeGain(uint64_t totalRounds, double *algGain, double *algAvgTrades
  * been used
  * @param bounded True when the plotted values need to be bounded in [0,1]
  */
-void plotAlgorithms(char *ylabel, uint64_t totalRounds, double *opt, double *median, double *greedy, double *eGreedy,
-                    double *succElim, double *ucb1, double *ucb2, double *exp3, Flag flag, uint8_t bounded);
-
-void plotAll(uint64_t totalRounds, double *opt, double *median, double *greedy, double *eGreedy, double *succElim,
-             double *ucb1, double *ucb2, double *exp3, Flag flag);
+void plotAlgorithms(char *ylabel, Bandit b, double *opt, double *median, double *greedy, double *eGreedy,
+                    double *succElim, double *ucb1, double *ucb2, double *exp3, uint8_t bounded);
 
 void plotData(double *data, uint64_t size);
 

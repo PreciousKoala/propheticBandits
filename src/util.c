@@ -4,47 +4,73 @@
 
 #include <util.h>
 
-void initThreshold(Threshold *thres, uint32_t totalThresholds) {
-    for (uint32_t th = 0; th < totalThresholds; th++) {
-        thres[th].threshold = (th + 1.0) / (totalThresholds + 1.0);
-        thres[th].rewardSum = 0;
-        thres[th].timesChosen = 0;
-        thres[th].avgReward = 0;
+void initThreshold(Threshold *thres, Bandit b) {
+    if (!b.dualThres) {
+        for (uint32_t th = 0; th < b.K; th++) {
+            thres[th].low = (th + 1.0) / (b.K + 1.0);
+            thres[th].high = (th + 1.0) / (b.K + 1.0);
+            thres[th].rewardSum = 0;
+            thres[th].timesChosen = 0;
+            thres[th].avgReward = 0;
+        }
+    } else {
+        uint32_t th = 0;
+
+        for (uint32_t l = 0; l < b.thresholds; l++) {
+            for (uint32_t h = l; h < b.thresholds; h++) {
+                thres[th].low = (l + 1.0) / (b.thresholds + 1.0);
+                thres[th].high = (h + 1.0) / (b.thresholds + 1.0);
+                thres[th].rewardSum = 0;
+                thres[th].timesChosen = 0;
+                thres[th].avgReward = 0;
+                th++;
+            }
+        }
     }
 }
 
-double runRound(Threshold *thres, uint32_t th, uint64_t totalRounds, uint64_t pricesPerRound, double *data,
-                double *avgThreshold, double *avgTrades, double *totalGain, uint64_t round, uint8_t *heldItems,
+double runRound(Threshold *thres, uint32_t th, Bandit b, double *data, double *avgLowThreshold,
+                double *avgHighThreshold, double *avgTrades, double *totalGain, uint64_t round, uint8_t *heldItems,
                 double *heldItemValue) {
     double gain = 0;
-    double threshold = thres[th].threshold;
+    double low = thres[th].low;
+    double high = thres[th].high;
     avgTrades[round] = 0;
 
-    for (uint64_t i = round * pricesPerRound; i < (round + 1) * pricesPerRound; i++) {
-        if ((i == totalRounds * pricesPerRound - 1 || data[i] >= threshold) && *heldItems == 1) {
+    if (!b.keepItems) { // extra check
+        *heldItems = 0;
+        *heldItemValue = 0;
+    }
+
+    for (uint64_t i = round * b.N; i < (round + 1) * b.N; i++) {
+        uint8_t lastPrice = (b.keepItems && i == (b.T * b.N - 1)) || (!b.keepItems && ((i + 1) % b.N) == 0);
+        if ((lastPrice || data[i] >= high) && *heldItems == 1) {
             gain += data[i] - *heldItemValue;
             *heldItems = 0;
             avgTrades[round]++;
-        } else if (data[i] < threshold && *heldItems == 0) {
+        } else if (!lastPrice && data[i] < low && *heldItems == 0) {
             *heldItemValue = data[i];
             *heldItems = 1;
         }
     }
 
     if (round > 0) {
-        avgTrades[round] = (avgTrades[round - 1] * round + avgTrades[round]) / (round + 1);
-        avgThreshold[round] = (avgThreshold[round - 1] * round + thres[th].threshold) / (round + 1);
+        avgTrades[round] = (avgTrades[round - 1] * (double) round + avgTrades[round]) / ((double) round + 1);
+        avgLowThreshold[round] = (avgLowThreshold[round - 1] * (double) round + thres[th].low) / ((double) round + 1);
+        avgHighThreshold[round] =
+                (avgHighThreshold[round - 1] * (double) round + thres[th].high) / ((double) round + 1);
     } else {
-        avgThreshold[round] = thres[th].threshold;
+        avgLowThreshold[round] = thres[th].low;
+        avgHighThreshold[round] = thres[th].high;
     }
 
     thres[th].rewardSum += gain;
     thres[th].timesChosen++;
     if (thres[th].timesChosen != 0) {
-        thres[th].avgReward = thres[th].rewardSum / thres[th].timesChosen;
+        thres[th].avgReward = thres[th].rewardSum / (double) thres[th].timesChosen;
     }
     if (round == 0) {
-        totalGain[round] = gain;
+        totalGain[0] = gain;
     } else {
         totalGain[round] = totalGain[round - 1] + gain;
     }
@@ -66,7 +92,7 @@ void getAvgGain(uint64_t size, double *avgGain, double *totalGain) {
 
 void getAvgRegret(uint64_t totalRounds, double *algAvgRegret, double *totalOpt, double *algGain) {
     for (uint64_t t = 0; t < totalRounds; t++) {
-        algAvgRegret[t] = (totalOpt[t] - algGain[t]) / (t + 1);
+        algAvgRegret[t] = (totalOpt[t] - algGain[t]) / (double) (t + 1);
     }
 }
 
@@ -78,7 +104,11 @@ void getCompRatio(uint64_t totalRounds, double *algCompRatio, double *totalOpt, 
 
 void getAvgTradeGain(uint64_t totalRounds, double *algGain, double *algAvgTrades, double *algAvgTradeGain) {
     for (uint64_t t = 0; t < totalRounds; t++) {
-        algAvgTradeGain[t] = algGain[t] / (algAvgTrades[t] * (t + 1));
+        if (algAvgTrades[t] != 0) {
+            algAvgTradeGain[t] = algGain[t] / (algAvgTrades[t] * (double) (t + 1));
+        } else {
+            algAvgTradeGain[t] = 0;
+        }
     }
 }
 
@@ -107,12 +137,12 @@ void plotData(double *data, uint64_t size) {
     pclose(gnuplot);
 }
 
-void plotAlgorithms(char *ylabel, uint64_t totalRounds, double *opt, double *median, double *greedy, double *eGreedy,
-                    double *succElim, double *ucb1, double *ucb2, double *exp3, Flag flag, uint8_t bounded) {
+void plotAlgorithms(char *ylabel, Bandit b, double *opt, double *median, double *greedy, double *eGreedy,
+                    double *succElim, double *ucb1, double *ucb2, double *exp3, uint8_t bounded) {
     uint32_t step = 1;
     // bigger step if the dataset is bigger, makes plot way faster
-    if (totalRounds > 10000) {
-        step = totalRounds / 10000;
+    if (b.T > 10000) {
+        step = b.T / 10000;
     }
 
     FILE *gnuplot = popen("gnuplot -persistent", "w");
@@ -134,91 +164,94 @@ void plotAlgorithms(char *ylabel, uint64_t totalRounds, double *opt, double *med
     fprintf(gnuplot, "plot ");
 
     if (opt != NULL) {
-        fprintf(gnuplot, "'-' using 1:2 with lines lc rgb 'black' lw 1.5 title 'OPT', ");
+        char *optTitle = "Median";
+        if (!b.medianOpt)
+            optTitle = "OPT";
+        fprintf(gnuplot, "'-' using 1:2 with lines lc rgb 'black' lw 1.5 title '%s', ", optTitle);
     }
 
-    if (flag.median) {
+    if (b.median) {
         fprintf(gnuplot, "'-' using 1:2 with linespoints lc rgb 'black' pt 7 ps 1 pn 20 lw 1.5 title 'Median', ");
     }
 
-    if (flag.greedy) {
+    if (b.greedy) {
         fprintf(gnuplot, "'-' using 1:2 with linespoints lc rgb 'orange' pt 1 ps 1 pn 20 lw 1.5 title 'Greedy', ");
     }
 
-    if (flag.eGreedy) {
+    if (b.eGreedy) {
         fprintf(gnuplot, "'-' using 1:2 with linespoints lc rgb 'red' pt 2 ps 1 pn 20 lw 1.5 title 'eGreedy', ");
     }
 
-    if (flag.succElim) {
+    if (b.succElim) {
         fprintf(gnuplot, "'-' using 1:2 with linespoints lc rgb 'cyan' pt 3 ps 1 pn 20 lw 1.5 title "
                          "'Successive Elimination', ");
     }
 
-    if (flag.ucb1) {
+    if (b.ucb1) {
         fprintf(gnuplot, "'-' using 1:2 with linespoints lc rgb 'blue' pt 4 ps 1 pn 20 lw 1.5 title 'UCB1', ");
     }
 
-    if (flag.ucb2) {
+    if (b.ucb2) {
         fprintf(gnuplot, "'-' using 1:2 with linespoints lc rgb 'purple' pt 5 ps 1 pn 20 lw 1.5 title 'UCB2', ");
     }
 
-    if (flag.exp3) {
+    if (b.exp3) {
         fprintf(gnuplot, "'-' using 1:2 with linespoints lc rgb 'green' pt 6 ps 1 pn 20 lw 1.5 title 'EXP3', ");
     }
 
     fprintf(gnuplot, "\n");
 
     if (opt != NULL) {
-        for (uint64_t t = 0; t < totalRounds; t += step) {
+        for (uint64_t t = 0; t < b.T; t += step) {
             fprintf(gnuplot, "%lu %lf\n", t, opt[t]);
         }
         fprintf(gnuplot, "e\n");
     }
 
-    if (flag.median) {
-        for (uint64_t t = 0; t < totalRounds; t += step) {
+    if (b.median) {
+        for (uint64_t t = 0; t < b.T; t += step) {
             fprintf(gnuplot, "%lu %lf\n", t, median[t]);
         }
         fprintf(gnuplot, "e\n");
     }
 
-    if (flag.greedy) {
-        for (uint64_t t = 0; t < totalRounds; t += step) {
+    if (b.greedy) {
+        for (uint64_t t = 0; t < b.T; t += step) {
             fprintf(gnuplot, "%lu %lf\n", t, greedy[t]);
         }
         fprintf(gnuplot, "e\n");
     }
 
-    if (flag.eGreedy) {
-        for (uint64_t t = 0; t < totalRounds; t += step) {
+    if (b.eGreedy) {
+        for (uint64_t t = 0; t < b.T; t += step) {
             fprintf(gnuplot, "%lu %lf\n", t, eGreedy[t]);
         }
         fprintf(gnuplot, "e\n");
     }
 
-    if (flag.succElim) {
-        for (uint64_t t = 0; t < totalRounds; t += step) {
+    if (b.succElim) {
+        for (uint64_t t = 0; t < b.T; t += step) {
             fprintf(gnuplot, "%lu %lf\n", t, succElim[t]);
         }
         fprintf(gnuplot, "e\n");
     }
 
-    if (flag.ucb1) {
-        for (uint64_t t = 0; t < totalRounds; t += step) {
+    if (b.ucb1) {
+        for (uint64_t t = 0; t < b.T; t += step) {
             fprintf(gnuplot, "%lu %lf\n", t, ucb1[t]);
         }
         fprintf(gnuplot, "e\n");
     }
 
-    if (flag.ucb2) {
-        for (uint64_t t = 0; t < totalRounds; t += step) {
+    if (b.ucb2) {
+        for (uint64_t t = 0; t < b.T; t += step) {
             fprintf(gnuplot, "%lu %lf\n", t, ucb2[t]);
         }
         fprintf(gnuplot, "e\n");
     }
 
-    if (flag.exp3) {
-        for (uint64_t t = 0; t < totalRounds; t += step) {
+    if (b.exp3) {
+        for (uint64_t t = 0; t < b.T; t += step) {
             fprintf(gnuplot, "%lu %lf\n", t, exp3[t]);
         }
         fprintf(gnuplot, "e\n");
