@@ -25,25 +25,14 @@ void median(double *data, double *totalGain, double *avgThreshold, double *avgTr
     double median = gsl_stats_median(dataCopy, 1, b.T * b.N);
     free(dataCopy);
 
-    for (int t = 0; t < b.T; t++) {
-        totalGain[t] = 0;
-        avgThreshold[t] = median;
-        avgTrades[t] = 0;
-    }
-
     uint8_t heldItems = 0;
     double heldItemValue = 0;
 
-    for (uint64_t i = 0; i < b.T * b.N; i++) {
-        uint8_t lastPrice = (b.keepItems && i == (b.T * b.N - 1)) || (!b.keepItems && ((i + 1) % b.N) == 0);
-        if ((lastPrice || data[i] >= median) && heldItems == 1) {
-            totalGain[i / b.N] += data[i] - heldItemValue;
-            heldItems = 0;
-            avgTrades[i / b.N]++;
-        } else if (!lastPrice && data[i] < median && heldItems == 0) {
-            heldItemValue = data[i];
-            heldItems = 1;
-        }
+    for (uint64_t t = 0; t < b.T; t++) {
+        uint32_t trades = 0;
+        double gain = runThreshold(median, median, b, data, &trades, t, &heldItems, &heldItemValue);
+        totalGain[t] = gain;
+        avgTrades[t] = trades;
     }
 
     for (uint64_t t = 1; t < b.T; t++) {
@@ -53,6 +42,7 @@ void median(double *data, double *totalGain, double *avgThreshold, double *avgTr
 
     for (uint64_t t = 0; t < b.T; t++) {
         avgTrades[t] = avgTrades[t] / ((double) t + 1);
+        avgThreshold[t] = median;
     }
 
     printf("\n");

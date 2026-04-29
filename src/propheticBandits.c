@@ -16,6 +16,7 @@ void printHelp() {
            "Options:\n"
            "    -t <integer>    Set the number of thresholds (default = 10).\n"
            "    -n              Don't plot any statistics.\n"
+           "    -p              Plot more statistics.\n"
            "    -d              Use two thresholds.\n"
            "    -o              Use median algorithm as OPT.\n"
            "    -O              Use best hand as OPT.\n"
@@ -36,13 +37,14 @@ int main(int argc, char **argv) {
         return 0;
     }
 
-    Bandit b = {0, 0, 10, 10, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0};
+    Bandit b = {0, 0, 10, 10, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0};
     uint8_t plot = 1;
+    uint8_t morePlot = 0;
 
     int opt;
     opterr = 0;
 
-    while ((opt = getopt(argc, argv, ":h:nkdoOamgesuUxt:")) != -1) {
+    while ((opt = getopt(argc, argv, ":h:npkdoOamgesuUxt:")) != -1) {
         switch (opt) {
             case 'h':
                 printHelp();
@@ -53,6 +55,9 @@ int main(int argc, char **argv) {
                 break;
             case 'n':
                 plot = 0;
+                break;
+            case 'p':
+                morePlot = 1;
                 break;
             case 'k':
                 b.keepItems = 1;
@@ -187,9 +192,17 @@ int main(int argc, char **argv) {
     double *totalOpt = malloc(b.T * sizeof(double));
     double *avgOpt = malloc(b.T * sizeof(double));
     double *optAvgTrades = malloc(b.T * sizeof(double));
+    double *optAvgLowThres = malloc(b.T * sizeof(double));
+    double *optAvgHighThres = malloc(b.T * sizeof(double));
     double *optAvgTradeGain = malloc(b.T * sizeof(double));
 
-    findOpt(data, totalOpt, optAvgTrades, b);
+    if (!b.medianOpt && !b.bestHandOpt) {
+        findOpt(data, totalOpt, optAvgTrades, b);
+    } else if (b.medianOpt) {
+        median(data, totalOpt, optAvgLowThres, optAvgTrades, totalOpt, b);
+    } else if (b.bestHandOpt) {
+        bestHand(data, totalOpt, optAvgLowThres, optAvgHighThres, optAvgTrades, b);
+    }
     getAvgGain(b.T, avgOpt, totalOpt);
     getAvgTradeGain(b.T, totalOpt, optAvgTrades, optAvgTradeGain);
 
@@ -326,7 +339,7 @@ int main(int argc, char **argv) {
         free(exp3Gain);
     }
 
-    if (plot) {
+    if (plot && morePlot) {
         printf("Plotting prices...\n");
         plotData(data, b.T * b.N);
     }
@@ -334,7 +347,7 @@ int main(int argc, char **argv) {
     free(data);
     free(totalOpt);
 
-    if (plot) {
+    if (plot && morePlot) {
         printf("Plotting gains...\n");
         plotAlgorithms("Average Gain", b, avgOpt, medianAvgGain, greedyAvgGain, eGreedyAvgGain, succElimAvgGain,
                        ucb1AvgGain, ucb2AvgGain, exp3AvgGain, 0);
@@ -379,35 +392,33 @@ int main(int argc, char **argv) {
     free(ucb2CompRatio);
     free(exp3CompRatio);
 
-    if (b.medianOpt) {
-        for (uint64_t t = 0; t < b.T; t++) {
-            medianAvgThreshold[t] = b.medianPrice;
-        }
-        // Temporarily set median flag to true
-        b.median = 1;
-    }
-
-    if (!noAlgs && plot && !b.dualThres) {
-        printf("Plotting average threshold...\n");
-        plotAlgorithms("Average Threshold", b, nullptr, medianAvgThreshold, greedyAvgLowThres, eGreedyAvgLowThres,
-                       succElimAvgLowThres, ucb1AvgLowThres, ucb2AvgLowThres, exp3AvgLowThres, 1);
-    } else if (!noAlgs && plot) {
-        printf("Plotting average lower threshold...\n");
-        plotAlgorithms("Average Lower Threshold", b, nullptr, medianAvgThreshold, greedyAvgLowThres, eGreedyAvgLowThres,
-                       succElimAvgLowThres, ucb1AvgLowThres, ucb2AvgLowThres, exp3AvgLowThres, 1);
-
-        printf("Plotting average higher threshold...\n");
-        plotAlgorithms("Average Higher Threshold", b, nullptr, medianAvgThreshold, greedyAvgHighThres,
-                       eGreedyAvgHighThres, succElimAvgHighThres, ucb1AvgHighThres, ucb2AvgHighThres, exp3AvgHighThres,
-                       1);
-    }
-
-    if (b.medianOpt) {
-        b.median = 0;
+    // if (!noAlgs && plot && !b.dualThres) {
+    //     printf("Plotting average threshold...\n");
+    //     plotAlgorithms("Average Threshold", b, optAvgLowThres, medianAvgThreshold, greedyAvgLowThres,
+    //     eGreedyAvgLowThres,
+    //                    succElimAvgLowThres, ucb1AvgLowThres, ucb2AvgLowThres, exp3AvgLowThres, 1);
+    // } else if (!noAlgs && plot) {
+    //     printf("Plotting average lower threshold...\n");
+    //     plotAlgorithms("Average Lower Threshold", b, optAvgLowThres, medianAvgThreshold, greedyAvgLowThres,
+    //     eGreedyAvgLowThres,
+    //                    succElimAvgLowThres, ucb1AvgLowThres, ucb2AvgLowThres, exp3AvgLowThres, 1);
+    //
+    //     printf("Plotting average higher threshold...\n");
+    //     plotAlgorithms("Average Higher Threshold", b, optAvgHighThres, medianAvgThreshold, greedyAvgHighThres,
+    //                    eGreedyAvgHighThres, succElimAvgHighThres, ucb1AvgHighThres, ucb2AvgHighThres,
+    //                    exp3AvgHighThres, 1);
+    // }
+    if (!noAlgs && plot) {
+        printf("Plotting average thresholds...\n");
+        plotThresholds(b, optAvgLowThres, optAvgHighThres, medianAvgThreshold, greedyAvgLowThres, greedyAvgHighThres,
+                       eGreedyAvgLowThres, eGreedyAvgHighThres, succElimAvgLowThres, succElimAvgHighThres,
+                       ucb1AvgLowThres, ucb1AvgHighThres, ucb2AvgLowThres, ucb2AvgHighThres, exp3AvgLowThres,
+                       exp3AvgHighThres);
     }
 
     free(medianAvgThreshold);
 
+    free(optAvgLowThres);
     free(greedyAvgLowThres);
     free(eGreedyAvgLowThres);
     free(succElimAvgLowThres);
@@ -415,6 +426,7 @@ int main(int argc, char **argv) {
     free(ucb2AvgLowThres);
     free(exp3AvgLowThres);
 
+    free(optAvgHighThres);
     free(greedyAvgHighThres);
     free(eGreedyAvgHighThres);
     free(succElimAvgHighThres);
@@ -422,7 +434,7 @@ int main(int argc, char **argv) {
     free(ucb2AvgHighThres);
     free(exp3AvgHighThres);
 
-    if (plot) {
+    if (plot && morePlot) {
         printf("Plotting average number of trades...\n");
         plotAlgorithms("Average Number of Trades", b, optAvgTrades, medianAvgTrades, greedyAvgTrades, eGreedyAvgTrades,
                        succElimAvgTrades, ucb1AvgTrades, ucb2AvgTrades, exp3AvgTrades, 0);
@@ -437,7 +449,7 @@ int main(int argc, char **argv) {
     free(ucb2AvgTrades);
     free(exp3AvgTrades);
 
-    if (plot) {
+    if (plot && morePlot) {
         printf("Plotting average gain per trade...\n");
         plotAlgorithms("Average Gain per Trade", b, optAvgTradeGain, medianAvgTradeGain, greedyAvgTradeGain,
                        eGreedyAvgTradeGain, succElimAvgTradeGain, ucb1AvgTradeGain, ucb2AvgTradeGain, exp3AvgTradeGain,

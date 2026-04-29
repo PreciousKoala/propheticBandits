@@ -32,34 +32,24 @@ void initThreshold(Threshold *thres, Bandit b) {
 double runRound(Threshold *thres, uint32_t th, Bandit b, double *data, double *avgLowThreshold,
                 double *avgHighThreshold, double *avgTrades, double *totalGain, uint64_t round, uint8_t *heldItems,
                 double *heldItemValue) {
-    double gain = 0;
     double low = thres[th].low;
     double high = thres[th].high;
-    avgTrades[round] = 0;
+    uint32_t trades = 0;
 
     if (!b.keepItems) { // extra check
         *heldItems = 0;
         *heldItemValue = 0;
     }
 
-    for (uint64_t i = round * b.N; i < (round + 1) * b.N; i++) {
-        uint8_t lastPrice = (b.keepItems && i == (b.T * b.N - 1)) || (!b.keepItems && ((i + 1) % b.N) == 0);
-        if ((lastPrice || data[i] >= high) && *heldItems == 1) {
-            gain += data[i] - *heldItemValue;
-            *heldItems = 0;
-            avgTrades[round]++;
-        } else if (!lastPrice && data[i] < low && *heldItems == 0) {
-            *heldItemValue = data[i];
-            *heldItems = 1;
-        }
-    }
+    double gain = runThreshold(low, high, b, data, &trades, round, heldItems, heldItemValue);
 
     if (round > 0) {
-        avgTrades[round] = (avgTrades[round - 1] * (double) round + avgTrades[round]) / ((double) round + 1);
+        avgTrades[round] = (avgTrades[round - 1] * (double) round + trades) / ((double) round + 1);
         avgLowThreshold[round] = (avgLowThreshold[round - 1] * (double) round + thres[th].low) / ((double) round + 1);
         avgHighThreshold[round] =
                 (avgHighThreshold[round - 1] * (double) round + thres[th].high) / ((double) round + 1);
     } else {
+        avgTrades[round] = trades;
         avgLowThreshold[round] = thres[th].low;
         avgHighThreshold[round] = thres[th].high;
     }
@@ -69,10 +59,30 @@ double runRound(Threshold *thres, uint32_t th, Bandit b, double *data, double *a
     if (thres[th].timesChosen != 0) {
         thres[th].avgReward = thres[th].rewardSum / (double) thres[th].timesChosen;
     }
+
     if (round == 0) {
         totalGain[0] = gain;
     } else {
         totalGain[round] = totalGain[round - 1] + gain;
+    }
+
+    return gain;
+}
+
+double runThreshold(double low, double high, Bandit b, double *data, uint32_t *trades, uint64_t round,
+                    uint8_t *heldItems, double *heldItemValue) {
+    double gain = 0;
+    *trades = 0;
+    for (uint64_t i = round * b.N; i < (round + 1) * b.N; i++) {
+        uint8_t lastPrice = (b.keepItems && i == (b.T * b.N - 1)) || (!b.keepItems && ((i + 1) % b.N) == 0);
+        if ((lastPrice || data[i] >= high) && *heldItems == 1) {
+            gain += data[i] - *heldItemValue;
+            *heldItems = 0;
+            trades++;
+        } else if (!lastPrice && data[i] < low && *heldItems == 0) {
+            *heldItemValue = data[i];
+            *heldItems = 1;
+        }
     }
 
     return gain;
@@ -159,14 +169,17 @@ void plotAlgorithms(char *ylabel, Bandit b, double *opt, double *median, double 
         fprintf(gnuplot, "set yrange [0:]\n");
 
     fprintf(gnuplot, "set grid\n");
-    fprintf(gnuplot, "set key right top spacing .5 font ',8'\n");
+    fprintf(gnuplot, "set key outside\n");
 
     fprintf(gnuplot, "plot ");
 
     if (opt != NULL) {
-        char *optTitle = "Median";
-        if (!b.medianOpt)
+        char *optTitle = "Best Threshold";
+        if (!b.medianOpt && !b.bestHandOpt)
             optTitle = "OPT";
+        else if (b.medianOpt)
+            optTitle = "Median";
+
         fprintf(gnuplot, "'-' using 1:2 with lines lc rgb 'black' lw 1.5 title '%s', ", optTitle);
     }
 
@@ -255,6 +268,182 @@ void plotAlgorithms(char *ylabel, Bandit b, double *opt, double *median, double 
             fprintf(gnuplot, "%lu %lf\n", t, exp3[t]);
         }
         fprintf(gnuplot, "e\n");
+    }
+
+    fflush(gnuplot);
+    pclose(gnuplot);
+}
+
+void plotThresholds(Bandit b, double *optLow, double *optHigh, double *median, double *greedyLow, double *greedyHigh,
+                    double *eGreedyLow, double *eGreedyHigh, double *succElimLow, double *succElimHigh, double *ucb1Low,
+                    double *ucb1High, double *ucb2Low, double *ucb2High, double *exp3Low, double *exp3High) {
+    uint32_t step = 1;
+    // bigger step if the dataset is bigger, makes plot way faster
+    if (b.T > 10000) {
+        step = b.T / 10000;
+    }
+
+    FILE *gnuplot = popen("gnuplot -persistent", "w");
+    if (!gnuplot) {
+        exit(1);
+    }
+    fprintf(gnuplot, "set xlabel 'Rounds'\n");
+    fprintf(gnuplot, "set ylabel 'Average Threshold'\n");
+    fprintf(gnuplot, "set yrange [0:1]\n");
+    fprintf(gnuplot, "set grid\n");
+    fprintf(gnuplot, "set key outside\n");
+
+    fprintf(gnuplot, "plot ");
+
+    if (b.medianOpt || b.bestHandOpt) {
+        char *optTitle = "Best Threshold";
+        if (b.medianOpt)
+            optTitle = "Median";
+
+        fprintf(gnuplot, "'-' using 1:2 with lines lc rgb 'black' lw 1.5 title '%s', ", optTitle);
+        if (b.dualThres && !b.medianOpt)
+            fprintf(gnuplot, "'' using 1:2 with lines lc rgb 'black' lw 1.5 notitle, ");
+    }
+
+    if (b.median && !b.medianOpt) {
+        fprintf(gnuplot, "'' using 1:2 with linespoints lc rgb 'black' pt 7 ps 1 pn 20 lw 1.5 title 'Median', ");
+    }
+
+    if (b.greedy) {
+        fprintf(gnuplot, "'-' using 1:2 with linespoints lc rgb 'orange' pt 1 ps 1 pn 20 lw 1.5 title 'Greedy', ");
+        if (b.dualThres)
+            fprintf(gnuplot, "'' using 1:2 with linespoints lc rgb 'orange' pt 1 ps 1 pn 20 lw 1.5 notitle, ");
+    }
+
+    if (b.eGreedy) {
+        fprintf(gnuplot, "'-' using 1:2 with linespoints lc rgb 'red' pt 2 ps 1 pn 20 lw 1.5 title 'eGreedy', ");
+        if (b.dualThres)
+            fprintf(gnuplot, "'' using 1:2 with linespoints lc rgb 'red' pt 2 ps 1 pn 20 lw 1.5 notitle, ");
+    }
+
+    if (b.succElim) {
+        fprintf(gnuplot, "'-' using 1:2 with linespoints lc rgb 'cyan' pt 3 ps 1 pn 20 lw 1.5 title "
+                         "'Successive Elimination', ");
+        if (b.dualThres)
+            fprintf(gnuplot, "'' using 1:2 with linespoints lc rgb 'cyan' pt 3 ps 1 pn 20 lw 1.5 notitle, ");
+    }
+
+    if (b.ucb1) {
+        fprintf(gnuplot, "'-' using 1:2 with linespoints lc rgb 'blue' pt 4 ps 1 pn 20 lw 1.5 title 'UCB1', ");
+        if (b.dualThres)
+            fprintf(gnuplot, "'' using 1:2 with linespoints lc rgb 'blue' pt 4 ps 1 pn 20 lw 1.5 notitle, ");
+    }
+
+    if (b.ucb2) {
+        fprintf(gnuplot, "'-' using 1:2 with linespoints lc rgb 'purple' pt 5 ps 1 pn 20 lw 1.5 title 'UCB2', ");
+        if (b.dualThres)
+            fprintf(gnuplot, "'' using 1:2 with linespoints lc rgb 'purple' pt 5 ps 1 pn 20 lw 1.5 notitle, ");
+    }
+
+    if (b.exp3) {
+        fprintf(gnuplot, "'-' using 1:2 with linespoints lc rgb 'green' pt 6 ps 1 pn 20 lw 1.5 title 'EXP3', ");
+        if (b.dualThres)
+            fprintf(gnuplot, "'' using 1:2 with linespoints lc rgb 'green' pt 6 ps 1 pn 20 lw 1.5 notitle, ");
+    }
+
+    fprintf(gnuplot, "\n");
+
+    if (b.medianOpt || b.bestHandOpt) {
+        for (uint64_t t = 0; t < b.T; t += step) {
+            fprintf(gnuplot, "%lu %lf\n", t, optLow[t]);
+        }
+        fprintf(gnuplot, "e\n");
+        if (b.dualThres && !b.medianOpt) {
+            for (uint64_t t = 0; t < b.T; t += step) {
+                fprintf(gnuplot, "%lu %lf\n", t, optHigh[t]);
+            }
+            fprintf(gnuplot, "e\n");
+        }
+    }
+
+    if (b.median && !b.medianOpt) {
+        for (uint64_t t = 0; t < b.T; t += step) {
+            fprintf(gnuplot, "%lu %lf\n", t, median[t]);
+        }
+        fprintf(gnuplot, "e\n");
+    }
+
+    if (b.greedy) {
+        for (uint64_t t = 0; t < b.T; t += step) {
+            fprintf(gnuplot, "%lu %lf\n", t, greedyLow[t]);
+        }
+        fprintf(gnuplot, "e\n");
+        if (b.dualThres) {
+            for (uint64_t t = 0; t < b.T; t += step) {
+                fprintf(gnuplot, "%lu %lf\n", t, greedyHigh[t]);
+            }
+            fprintf(gnuplot, "e\n");
+        }
+    }
+
+    if (b.eGreedy) {
+        for (uint64_t t = 0; t < b.T; t += step) {
+            fprintf(gnuplot, "%lu %lf\n", t, eGreedyLow[t]);
+        }
+        fprintf(gnuplot, "e\n");
+        if (b.dualThres) {
+            for (uint64_t t = 0; t < b.T; t += step) {
+                fprintf(gnuplot, "%lu %lf\n", t, eGreedyHigh[t]);
+            }
+            fprintf(gnuplot, "e\n");
+        }
+    }
+
+    if (b.succElim) {
+        for (uint64_t t = 0; t < b.T; t += step) {
+            fprintf(gnuplot, "%lu %lf\n", t, succElimLow[t]);
+        }
+        fprintf(gnuplot, "e\n");
+        if (b.dualThres) {
+            for (uint64_t t = 0; t < b.T; t += step) {
+                fprintf(gnuplot, "%lu %lf\n", t, succElimHigh[t]);
+            }
+            fprintf(gnuplot, "e\n");
+        }
+    }
+
+    if (b.ucb1) {
+        for (uint64_t t = 0; t < b.T; t += step) {
+            fprintf(gnuplot, "%lu %lf\n", t, ucb1Low[t]);
+        }
+        fprintf(gnuplot, "e\n");
+        if (b.dualThres) {
+            for (uint64_t t = 0; t < b.T; t += step) {
+                fprintf(gnuplot, "%lu %lf\n", t, ucb1High[t]);
+            }
+            fprintf(gnuplot, "e\n");
+        }
+    }
+
+    if (b.ucb2) {
+        for (uint64_t t = 0; t < b.T; t += step) {
+            fprintf(gnuplot, "%lu %lf\n", t, ucb2Low[t]);
+        }
+        fprintf(gnuplot, "e\n");
+        if (b.dualThres) {
+            for (uint64_t t = 0; t < b.T; t += step) {
+                fprintf(gnuplot, "%lu %lf\n", t, ucb2High[t]);
+            }
+            fprintf(gnuplot, "e\n");
+        }
+    }
+
+    if (b.exp3) {
+        for (uint64_t t = 0; t < b.T; t += step) {
+            fprintf(gnuplot, "%lu %lf\n", t, exp3Low[t]);
+        }
+        fprintf(gnuplot, "e\n");
+        if (b.dualThres) {
+            for (uint64_t t = 0; t < b.T; t += step) {
+                fprintf(gnuplot, "%lu %lf\n", t, exp3High[t]);
+            }
+            fprintf(gnuplot, "e\n");
+        }
     }
 
     fflush(gnuplot);

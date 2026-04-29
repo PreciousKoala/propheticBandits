@@ -15,7 +15,6 @@ typedef struct banditStruct {
     uint32_t thresholds;
     uint8_t dualThres;
     uint8_t medianOpt;
-    double medianPrice;
     uint8_t bestHandOpt;
     uint8_t keepItems;
     uint8_t median;
@@ -68,8 +67,12 @@ void initThreshold(Threshold *thres, Bandit b);
  *
  * @returns The reward of the round
  */
-double runRound(Threshold *thres, uint32_t th, Bandit b, double *data, double *avgLowThreshold, double *avgHighThreshold, double *avgTrades,
-                double *totalGain, uint64_t round, uint8_t *heldItems, double *heldItemValue);
+double runRound(Threshold *thres, uint32_t th, Bandit b, double *data, double *avgLowThreshold,
+                double *avgHighThreshold, double *avgTrades, double *totalGain, uint64_t round, uint8_t *heldItems,
+                double *heldItemValue);
+
+double runThreshold(double low, double high, Bandit b, double *data, uint32_t *trades, uint64_t round,
+                    uint8_t *heldItems, double *heldItemValue);
 
 /**
  * @brief Normalizes a 2D array represented in 1D in [0,1]
@@ -114,5 +117,9 @@ void plotAlgorithms(char *ylabel, Bandit b, double *opt, double *median, double 
                     double *succElim, double *ucb1, double *ucb2, double *exp3, uint8_t bounded);
 
 void plotData(double *data, uint64_t size);
+
+void plotThresholds(Bandit b, double *optLow, double *optHigh, double *median, double *greedyLow, double *greedyHigh,
+                    double *eGreedyLow, double *eGreedyHigh, double *succElimLow, double *succElimHigh, double *ucb1Low,
+                    double *ucb1High, double *ucb2Low, double *ucb2High, double *exp3Low, double *exp3High);
 
 #endif

@@ -5,7 +5,8 @@
 
 void findOpt(double *data, double *totalOpt, double *avgTrades, Bandit b);
 
-void bestHand(double *data, double *totalOpt, double *avgTrades, Bandit b);
+void bestHand(double *data, double *totalOpt, double *avgLowThreshold, double *avgHighThreshold, double *avgTrades,
+              Bandit b);
 
 void median(double *data, double *totalGain, double *avgThreshold, double *avgTrades, double *totalOpt, Bandit b);
 

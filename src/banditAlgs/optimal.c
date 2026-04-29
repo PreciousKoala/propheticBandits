@@ -6,19 +6,6 @@
 #include <util.h>
 
 void findOpt(double *data, double *totalOpt, double *avgTrades, Bandit b) {
-    if (b.medianOpt) {
-        double *avgThreshold = malloc(b.T * sizeof(double));
-        median(data, totalOpt, avgThreshold, avgTrades, totalOpt, b);
-        free(avgThreshold);
-        return;
-    }
-
-
-    if (b.bestHandOpt) {
-        bestHand(data, totalOpt, avgTrades, b);
-        return;
-    }
-
     uint8_t rightAsc;
     uint8_t leftAsc;
 
@@ -82,17 +69,10 @@ void findOpt(double *data, double *totalOpt, double *avgTrades, Bandit b) {
            "-----------\n\n");
 }
 
-void bestHand(double *data, double *totalOpt, double *avgTrades, Bandit b) {
+void bestHand(double *data, double *totalOpt, double *avgLowThreshold, double *avgHighThreshold, double *avgTrades,
+              Bandit b) {
     Threshold *thres = malloc(b.K * sizeof(Threshold));
     initThreshold(thres, b);
-
-    double *rewardSum = malloc(b.K * sizeof(double));
-    uint64_t *timesChosen = malloc(b.K * sizeof(uint64_t));
-
-    for (uint32_t th = 0; th < b.K; th++) {
-        rewardSum[th] = 0;
-        timesChosen[th] = 0;
-    }
 
     double *totalGain = malloc(b.T * sizeof(double));
     double *buffer = malloc(b.T * sizeof(double));
@@ -102,25 +82,19 @@ void bestHand(double *data, double *totalOpt, double *avgTrades, Bandit b) {
         uint32_t chosenTh = 0;
         double gain = 0;
         buffer[t] = 0;
+        uint8_t heldItems = 0;
+        double heldItemValue = 0;
 
         for (uint32_t th = 0; th < b.K; th++) {
-            uint8_t heldItems = 0;
-            double heldItemValue = 0;
-            gain = runRound(thres, th, b, data, buffer, buffer, avgTrades, buffer, t, &heldItems, &heldItemValue);
+            uint32_t trades = 0;
+            gain = runThreshold(thres[th].low, thres[th].high, b, data, &trades, t, &heldItems, &heldItemValue);
             if (gain >= maxGain) {
                 maxGain = gain;
                 chosenTh = th;
             }
         }
 
-        rewardSum[chosenTh] += maxGain;
-        timesChosen[chosenTh]++;
-
-        if (t == 0) {
-            totalOpt[0] = maxGain;
-        } else {
-            totalOpt[t] = totalOpt[t - 1] + maxGain;
-        }
+        runRound(thres, chosenTh, b, data, avgLowThreshold, avgHighThreshold, avgTrades, totalOpt, t, &heldItems, &heldItemValue);
     }
 
     free(totalGain);
@@ -132,19 +106,14 @@ void bestHand(double *data, double *totalOpt, double *avgTrades, Bandit b) {
     if (!b.dualThres) {
         printf("Threshold\tTotal Reward\tTimes Chosen\tAverage Reward\n");
         for (int32_t th = 0; th < b.K; th++) {
-            double avgReward = 0;
-            if (timesChosen[th] != 0)
-                avgReward = rewardSum[th] / (double) timesChosen[th];
-            printf("%-7.2lf\t\t%-10.2lf\t%-12lu\t%-.6lf\n", thres[th].low, rewardSum[th], timesChosen[th], avgReward);
+            printf("%-7.2lf\t\t%-10.2lf\t%-12lu\t%-.6lf\n", thres[th].low, thres[th].rewardSum, thres[th].timesChosen,
+                   thres[th].avgReward);
         }
     } else {
         printf("Low Thres\tHigh Thres\tTotal Reward\tTimes Chosen\tAverage Reward\n");
         for (int32_t th = 0; th < b.K; th++) {
-            double avgReward = 0;
-            if (timesChosen[th] != 0)
-                avgReward = rewardSum[th] / (double) timesChosen[th];
-            printf("%-7.2lf\t\t%-7.2lf\t\t%-10.2lf\t%-12lu\t%-.6lf\n", thres[th].low, thres[th].high, rewardSum[th],
-                   timesChosen[th], avgReward);
+            printf("%-7.2lf\t\t%-7.2lf\t\t%-10.2lf\t%-12lu\t%-.6lf\n", thres[th].low, thres[th].high,
+                   thres[th].rewardSum, thres[th].timesChosen, thres[th].avgReward);
         }
     }
 
@@ -156,6 +125,4 @@ void bestHand(double *data, double *totalOpt, double *avgTrades, Bandit b) {
            "-----------\n\n");
 
     free(thres);
-    free(rewardSum);
-    free(timesChosen);
 }
