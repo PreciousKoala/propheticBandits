@@ -44,10 +44,10 @@ typedef struct thresholdStruct {
 } Threshold;
 
 /**
- * @brief Initializes the array of threshold sturcts' values to 0
+ * @brief Initializes the array of threshold structs' values to 0
  *
  * @param thres The Threshold struct array
- * @param totalThresholds The size of the array
+ * @param b A struct with various information and flags
  */
 void initThreshold(Threshold *thres, Bandit b);
 
@@ -58,7 +58,8 @@ void initThreshold(Threshold *thres, Bandit b);
  * @param thres Threshold array
  * @param th The chosen threshold
  * @param data The array with the prices
- * @param avgThreshold The array that holds the average chosen threshold of each round
+ * @param avgHighThreshold The array that holds the average chosen upper threshold of each round
+ * @param avgLowThreshold The array that holds the average chosen lower threshold of each round
  * @param avgTrades The array that holds the average number of trades (selling an item) up to the current round
  * @param totalGain The array that holds the total gain up to the current round
  * @param round The current round
@@ -106,11 +107,9 @@ void getAvgTradeGain(uint64_t totalRounds, double *algGain, double *algAvgTrades
  * @brief Plots the needed information per day for each algorithm using gnuplot
  *
  * @param ylabel The title that appears on the plot window
- * @param totalRounds The total number of rounds and the size of each array
- * @param [median, greedy, eGreedy, succElim, ucb1, ucb2, exp3] The array that holds the
+ * @param b A struct with various information and flags
+ * @param opt, median, greedy, eGreedy, succElim, ucb1, ucb2, exp3 The array that holds the
  * information to be plotted for each algorithm for each round
- * @param flag The Flag struct that informs the program which algorithms have
- * been used
  * @param bounded True when the plotted values need to be bounded in [0,1]
  */
 void plotAlgorithms(char *ylabel, Bandit b, double *opt, double *median, double *greedy, double *eGreedy,
@@ -121,5 +120,21 @@ void plotData(double *data, uint64_t size);
 void plotThresholds(Bandit b, double *optLow, double *optHigh, double *median, double *greedyLow, double *greedyHigh,
                     double *eGreedyLow, double *eGreedyHigh, double *succElimLow, double *succElimHigh, double *ucb1Low,
                     double *ucb1High, double *ucb2Low, double *ucb2High, double *exp3Low, double *exp3High);
+
+/**
+ * @brief Saves the plotted regret and competitive ratio in a file. Used to compare results between different number of
+ * thresholds
+ *
+ * @param filepath The name of the data file
+ * @param b A struct with various information and flags
+ * @param avgRegret The array that holds the average regret for each round
+ * @param compRatio The array that holds the competitive ratio for each round
+ */
+void saveResults(char *filepath, Bandit b, char *resultType, double *median, double *greedy,
+                 double *eGreedy, double *succElim, double *ucb1, double *ucb2, double *exp3);
+
+void saveAlgResults(char *resultPath, Bandit b, char *algName, char *resultType, double *result);
+
+void mkdir_p(char *path);
 
 #endif

@@ -1,6 +1,10 @@
+#include <libgen.h>
 #include <stdint.h>
 #include <stdio.h>
 #include <stdlib.h>
+#include <string.h>
+#include <sys/stat.h>
+
 
 #include <util.h>
 
@@ -29,9 +33,9 @@ void initThreshold(Threshold *thres, Bandit b) {
     }
 }
 
-double runRound(Threshold *thres, uint32_t th, Bandit b, double *data, double *avgLowThreshold,
-                double *avgHighThreshold, double *avgTrades, double *totalGain, uint64_t round, uint8_t *heldItems,
-                double *heldItemValue) {
+double runRound(Threshold *thres, const uint32_t th, Bandit b, double *data, double *avgLowThreshold,
+                double *avgHighThreshold, double *avgTrades, double *totalGain, const uint64_t round,
+                uint8_t *heldItems, double *heldItemValue) {
     double low = thres[th].low;
     double high = thres[th].high;
     uint32_t trades = 0;
@@ -69,17 +73,17 @@ double runRound(Threshold *thres, uint32_t th, Bandit b, double *data, double *a
     return gain;
 }
 
-double runThreshold(double low, double high, Bandit b, double *data, uint32_t *trades, uint64_t round,
+double runThreshold(double low, double high, Bandit b, double *data, uint32_t *trades, const uint64_t round,
                     uint8_t *heldItems, double *heldItemValue) {
     double gain = 0;
     *trades = 0;
     for (uint64_t i = round * b.N; i < (round + 1) * b.N; i++) {
         uint8_t lastPrice = (b.keepItems && i == (b.T * b.N - 1)) || (!b.keepItems && ((i + 1) % b.N) == 0);
-        if ((lastPrice || data[i] >= high) && *heldItems == 1) {
+        if ((lastPrice || data[i] > high) && *heldItems == 1) {
             gain += data[i] - *heldItemValue;
             *heldItems = 0;
-            trades++;
-        } else if (!lastPrice && data[i] < low && *heldItems == 0) {
+            (*trades)++;
+        } else if (!lastPrice && data[i] <= low && *heldItems == 0) {
             *heldItemValue = data[i];
             *heldItems = 1;
         }
@@ -302,48 +306,48 @@ void plotThresholds(Bandit b, double *optLow, double *optHigh, double *median, d
 
         fprintf(gnuplot, "'-' using 1:2 with lines lc rgb 'black' lw 1.5 title '%s', ", optTitle);
         if (b.dualThres && !b.medianOpt)
-            fprintf(gnuplot, "'' using 1:2 with lines lc rgb 'black' lw 1.5 notitle, ");
+            fprintf(gnuplot, "'-' using 1:2 with lines lc rgb 'black' lw 1.5 notitle, ");
     }
 
     if (b.median && !b.medianOpt) {
-        fprintf(gnuplot, "'' using 1:2 with linespoints lc rgb 'black' pt 7 ps 1 pn 20 lw 1.5 title 'Median', ");
+        fprintf(gnuplot, "'-' using 1:2 with linespoints lc rgb 'black' pt 7 ps 1 pn 20 lw 1.5 title 'Median', ");
     }
 
     if (b.greedy) {
         fprintf(gnuplot, "'-' using 1:2 with linespoints lc rgb 'orange' pt 1 ps 1 pn 20 lw 1.5 title 'Greedy', ");
         if (b.dualThres)
-            fprintf(gnuplot, "'' using 1:2 with linespoints lc rgb 'orange' pt 1 ps 1 pn 20 lw 1.5 notitle, ");
+            fprintf(gnuplot, "'-' using 1:2 with linespoints lc rgb 'orange' pt 1 ps 1 pn 20 lw 1.5 notitle, ");
     }
 
     if (b.eGreedy) {
         fprintf(gnuplot, "'-' using 1:2 with linespoints lc rgb 'red' pt 2 ps 1 pn 20 lw 1.5 title 'eGreedy', ");
         if (b.dualThres)
-            fprintf(gnuplot, "'' using 1:2 with linespoints lc rgb 'red' pt 2 ps 1 pn 20 lw 1.5 notitle, ");
+            fprintf(gnuplot, "'-' using 1:2 with linespoints lc rgb 'red' pt 2 ps 1 pn 20 lw 1.5 notitle, ");
     }
 
     if (b.succElim) {
         fprintf(gnuplot, "'-' using 1:2 with linespoints lc rgb 'cyan' pt 3 ps 1 pn 20 lw 1.5 title "
                          "'Successive Elimination', ");
         if (b.dualThres)
-            fprintf(gnuplot, "'' using 1:2 with linespoints lc rgb 'cyan' pt 3 ps 1 pn 20 lw 1.5 notitle, ");
+            fprintf(gnuplot, "'-' using 1:2 with linespoints lc rgb 'cyan' pt 3 ps 1 pn 20 lw 1.5 notitle, ");
     }
 
     if (b.ucb1) {
         fprintf(gnuplot, "'-' using 1:2 with linespoints lc rgb 'blue' pt 4 ps 1 pn 20 lw 1.5 title 'UCB1', ");
         if (b.dualThres)
-            fprintf(gnuplot, "'' using 1:2 with linespoints lc rgb 'blue' pt 4 ps 1 pn 20 lw 1.5 notitle, ");
+            fprintf(gnuplot, "'-' using 1:2 with linespoints lc rgb 'blue' pt 4 ps 1 pn 20 lw 1.5 notitle, ");
     }
 
     if (b.ucb2) {
         fprintf(gnuplot, "'-' using 1:2 with linespoints lc rgb 'purple' pt 5 ps 1 pn 20 lw 1.5 title 'UCB2', ");
         if (b.dualThres)
-            fprintf(gnuplot, "'' using 1:2 with linespoints lc rgb 'purple' pt 5 ps 1 pn 20 lw 1.5 notitle, ");
+            fprintf(gnuplot, "'-' using 1:2 with linespoints lc rgb 'purple' pt 5 ps 1 pn 20 lw 1.5 notitle, ");
     }
 
     if (b.exp3) {
         fprintf(gnuplot, "'-' using 1:2 with linespoints lc rgb 'green' pt 6 ps 1 pn 20 lw 1.5 title 'EXP3', ");
         if (b.dualThres)
-            fprintf(gnuplot, "'' using 1:2 with linespoints lc rgb 'green' pt 6 ps 1 pn 20 lw 1.5 notitle, ");
+            fprintf(gnuplot, "'-' using 1:2 with linespoints lc rgb 'green' pt 6 ps 1 pn 20 lw 1.5 notitle, ");
     }
 
     fprintf(gnuplot, "\n");
@@ -448,4 +452,91 @@ void plotThresholds(Bandit b, double *optLow, double *optHigh, double *median, d
 
     fflush(gnuplot);
     pclose(gnuplot);
+}
+
+void saveResults(char *filepath, Bandit b, char *resultType, double *median, double *greedy, double *eGreedy,
+                 double *succElim, double *ucb1, double *ucb2, double *exp3) {
+
+    char resultPath[256] = "prophetResults/";
+    char *dataName = strtok(basename(filepath), ".");
+
+    char params[256];
+    snprintf(params, sizeof(params), "K%u", b.thresholds);
+    if (b.dualThres)
+        strcat(params, "d");
+    if (b.medianOpt)
+        strcat(params, "o");
+    if (b.bestHandOpt)
+        strcat(params, "O");
+    if (b.keepItems)
+        strcat(params, "k");
+
+    strcat(resultPath, dataName);
+    strcat(resultPath, "/");
+    strcat(resultPath, params);
+    strcat(resultPath, "/");
+
+    if (b.median)
+        saveAlgResults(resultPath, b, "median", resultType, median);
+
+    if (b.greedy)
+        saveAlgResults(resultPath, b, "greedy", resultType, greedy);
+
+    if (b.eGreedy)
+        saveAlgResults(resultPath, b, "eGreedy", resultType, eGreedy);
+
+    if (b.succElim)
+        saveAlgResults(resultPath, b, "succElim", resultType, succElim);
+
+    if (b.ucb1)
+        saveAlgResults(resultPath, b, "ucb1", resultType, ucb1);
+
+    if (b.ucb2)
+        saveAlgResults(resultPath, b, "ucb2", resultType, ucb2);
+
+    if (b.exp3)
+        saveAlgResults(resultPath, b, "exp3", resultType, exp3);
+}
+
+void saveAlgResults(char *resultPath, Bandit b, char *algName, char *resultType, double *result) {
+    char algResultPath[256];
+    strcpy(algResultPath, resultPath);
+    strcat(algResultPath, algName);
+
+    mkdir_p(algResultPath);
+
+    strcat(algResultPath, "/");
+    strcat(algResultPath, resultType);
+    strcat(algResultPath, ".txt");
+
+    FILE *file = fopen(algResultPath, "w");
+    if (!file) {
+        printf("Error opening file");
+        return;
+    }
+
+    for (uint64_t t = 0; t < b.T; t++) {
+        fprintf(file, "%lu %lf\n", t, result[t]);
+    }
+    fclose(file);
+}
+
+void mkdir_p(char *path) {
+    char temp[512];
+
+    snprintf(temp, sizeof(temp), "%s", path);
+    uint32_t len = strlen(temp);
+
+    if (temp[len - 1] == '/')
+        temp[len - 1] = '\0';
+
+    for (char *p = temp + 1; *p; p++) {
+        if (*p == '/') {
+            *p = '\0';
+            mkdir(temp, 0700);
+            *p = '/';
+        }
+    }
+
+    mkdir(temp, 0700);
 }

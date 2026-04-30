@@ -1,4 +1,5 @@
 prophetData/
+prophetResults/
 compile_commands.json
 obj/
 bin/

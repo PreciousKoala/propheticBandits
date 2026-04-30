@@ -123,11 +123,12 @@ int main(int argc, char **argv) {
      */
     double *data;
     uint64_t totalRounds, pricesPerRound;
+    char *filepath;
     // opens binary data file
     if (optind < argc) {
         // small hack to get first non-option argument because getopt is a pain
-        char *filename = argv[optind];
-        FILE *file = fopen(filename, "rb");
+        filepath = argv[optind];
+        FILE *file = fopen(filepath, "rb");
         if (!file) {
             printf("Error opening file\n");
             return 1;
@@ -167,10 +168,6 @@ int main(int argc, char **argv) {
     b.T = totalRounds;
     b.N = pricesPerRound;
 
-    if (b.dualThres && b.K <= 2) {
-        printf("Error: Too few thresholds");
-        return 1;
-    }
 
     if (b.dualThres) {
         b.thresholds = b.K;
@@ -179,6 +176,16 @@ int main(int argc, char **argv) {
 
     if (b.medianOpt) {
         b.median = 0;
+    }
+
+    if ((b.dualThres && b.K <= 2) || b.K < 1) {
+        printf("Error: Too few thresholds\n");
+        free(data);
+        return 1;
+    } else if (b.K > b.T) {
+        printf("Error: Too many thresholds\n");
+        free(data);
+        return 1;
     }
 
     double dataMin, dataMax;
@@ -364,11 +371,20 @@ int main(int argc, char **argv) {
 
     uint8_t noAlgs = !(b.median || b.greedy || b.eGreedy || b.succElim || b.ucb1 || b.ucb2 || b.exp3);
 
+    if (!noAlgs) {
+        saveResults(filepath, b, "regret", medianAvgRegret, greedyAvgRegret, eGreedyAvgRegret, succElimAvgRegret,
+                    ucb1AvgRegret, ucb2AvgRegret, exp3AvgRegret);
+
+        saveResults(filepath, b, "compRatio", medianCompRatio, greedyCompRatio, eGreedyCompRatio, succElimCompRatio,
+                    ucb1CompRatio, ucb2CompRatio, exp3CompRatio);
+    }
+
     if (!noAlgs && plot) {
         printf("Plotting regret...\n");
         plotAlgorithms("Average Regret", b, nullptr, medianAvgRegret, greedyAvgRegret, eGreedyAvgRegret,
                        succElimAvgRegret, ucb1AvgRegret, ucb2AvgRegret, exp3AvgRegret, 0);
     }
+
 
     free(medianAvgRegret);
     free(greedyAvgRegret);
@@ -377,6 +393,7 @@ int main(int argc, char **argv) {
     free(ucb1AvgRegret);
     free(ucb2AvgRegret);
     free(exp3AvgRegret);
+
 
     if (!noAlgs && plot) {
         printf("Plotting competitive ratio...\n");
