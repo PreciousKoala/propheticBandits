@@ -21,7 +21,7 @@ void greedy(double *data, double *totalGain, double *avgLowThreshold, double *av
      */
 
     Threshold *thres = malloc(b.K * sizeof(Threshold));
-    initThreshold(thres, b);
+    initThreshold(thres, b, data);
 
     uint32_t chosenTh = 0;
     totalGain[0] = 0;
@@ -43,6 +43,12 @@ void greedy(double *data, double *totalGain, double *avgLowThreshold, double *av
 
     for (uint64_t t = b.K; t < b.T; t++) {
         runRound(thres, chosenTh, b, data, avgLowThreshold, avgHighThreshold, avgTrades, totalGain, t, &heldItems, &heldItemValue);
+    }
+
+    if (b.dynamicThres) {
+        for (uint64_t t = 0; t < b.T; t++) {
+            totalGain[t] -= totalGain[0];
+        }
     }
 
     printf("\n");

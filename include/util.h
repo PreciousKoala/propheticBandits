@@ -17,6 +17,7 @@ typedef struct banditStruct {
     uint8_t medianOpt;
     uint8_t bestHandOpt;
     uint8_t keepItems;
+    uint8_t dynamicThres;
     uint8_t median;
     uint8_t greedy;
     uint8_t eGreedy;
@@ -49,7 +50,7 @@ typedef struct thresholdStruct {
  * @param thres The Threshold struct array
  * @param b A struct with various information and flags
  */
-void initThreshold(Threshold *thres, Bandit b);
+void initThreshold(Threshold *thres, Bandit b, double *data);
 
 /**
  * @brief Updates the threhold array's values for the specific threshold that

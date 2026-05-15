@@ -28,7 +28,7 @@ void succElim(double *data, double *totalGain, double *avgLowThreshold, double *
      */
 
     Threshold *thres = malloc(b.K * sizeof(Threshold));
-    initThreshold(thres, b);
+    initThreshold(thres, b, data);
 
     totalGain[0] = 0;
     uint8_t heldItems = 0;
@@ -76,6 +76,12 @@ void succElim(double *data, double *totalGain, double *avgLowThreshold, double *
             if (upperConfBound[th] < maxLCB) {
                 thresActive[th] = 0;
             }
+        }
+    }
+
+    if (b.dynamicThres) {
+        for (uint64_t t = 0; t < b.T; t++) {
+            totalGain[t] -= totalGain[0];
         }
     }
 

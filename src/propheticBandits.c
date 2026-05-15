@@ -18,6 +18,7 @@ void printHelp() {
            "    -n              Don't plot any statistics.\n"
            "    -p              Plot more statistics.\n"
            "    -d              Use two thresholds.\n"
+           "    -D              Use dynamic threshold values.\n"
            "    -o              Use median algorithm as OPT.\n"
            "    -O              Use best hand as OPT.\n"
            "    -k              Keep items between rounds.\n\n"
@@ -37,14 +38,14 @@ int main(int argc, char **argv) {
         return 0;
     }
 
-    Bandit b = {0, 0, 10, 10, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0};
+    Bandit b = {0, 0, 10, 10, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0};
     uint8_t plot = 1;
     uint8_t morePlot = 0;
 
     int opt;
     opterr = 0;
 
-    while ((opt = getopt(argc, argv, ":h:npkdoOamgesuUxt:")) != -1) {
+    while ((opt = getopt(argc, argv, ":h:npkdDoOamgesuUxt:")) != -1) {
         switch (opt) {
             case 'h':
                 printHelp();
@@ -64,6 +65,9 @@ int main(int argc, char **argv) {
                 break;
             case 'd':
                 b.dualThres = 1;
+                break;
+            case 'D':
+                b.dynamicThres = 1;
                 break;
             case 'o':
                 b.medianOpt = 1;
@@ -188,8 +192,14 @@ int main(int argc, char **argv) {
         return 1;
     }
 
+    if (b.N < b.thresholds) {
+        b.dynamicThres = 0;
+    }
+
     double dataMin, dataMax;
     gsl_stats_minmax(&dataMin, &dataMax, data, 1, b.T * b.N);
+    dataMin = fmin(dataMin, 0);
+    dataMax = fmax(dataMax, 1);
 
     // Normalize prices to [0, 1]
     printf("Normalizing prices to [0,1]...\n");
@@ -398,7 +408,7 @@ int main(int argc, char **argv) {
     if (!noAlgs && plot) {
         printf("Plotting competitive ratio...\n");
         plotAlgorithms("Competitive Ratio", b, nullptr, medianCompRatio, greedyCompRatio, eGreedyCompRatio,
-                       succElimCompRatio, ucb1CompRatio, ucb2CompRatio, exp3CompRatio, 0);
+                       succElimCompRatio, ucb1CompRatio, ucb2CompRatio, exp3CompRatio, 1);
     }
 
     free(medianCompRatio);

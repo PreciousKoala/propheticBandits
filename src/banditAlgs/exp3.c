@@ -47,7 +47,7 @@ void exp3(double *data, double *totalGain, double *avgLowThreshold, double *avgH
     gsl_rng_set(r, time(nullptr));
 
     Threshold *thres = malloc(b.K * sizeof(Threshold));
-    initThreshold(thres, b);
+    initThreshold(thres, b, data);
 
     totalGain[0] = 0;
     uint8_t heldItems = 0;
@@ -129,6 +129,12 @@ void exp3(double *data, double *totalGain, double *avgLowThreshold, double *avgH
         // if (maxEstim < estimTotalGain[chosenTh]) {
         // maxEstim = estimTotalGain[chosenTh];
         // }
+    }
+
+    if (b.dynamicThres) {
+        for (uint64_t t = 0; t < b.T; t++) {
+            totalGain[t] -= totalGain[0];
+        }
     }
 
 

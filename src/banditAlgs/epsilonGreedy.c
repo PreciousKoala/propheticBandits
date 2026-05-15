@@ -34,7 +34,7 @@ void epsilonGreedy(double *data, double *totalGain, double *avgLowThreshold, dou
     gsl_rng_set(r, time(nullptr));
 
     Threshold *thres = malloc(b.K * sizeof(Threshold));
-    initThreshold(thres, b);
+    initThreshold(thres, b, data);
 
     uint64_t explore = 0;
     uint64_t exploit = 0;
@@ -70,6 +70,12 @@ void epsilonGreedy(double *data, double *totalGain, double *avgLowThreshold, dou
 
         runRound(thres, chosenTh, b, data, avgLowThreshold, avgHighThreshold, avgTrades, totalGain, t, &heldItems,
                  &heldItemValue);
+    }
+
+    if (b.dynamicThres) {
+        for (uint64_t t = 0; t < b.T; t++) {
+            totalGain[t] -= totalGain[0];
+        }
     }
 
     printf("\n");

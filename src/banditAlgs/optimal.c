@@ -72,7 +72,7 @@ void findOpt(double *data, double *totalOpt, double *avgTrades, Bandit b) {
 void bestHand(double *data, double *totalOpt, double *avgLowThreshold, double *avgHighThreshold, double *avgTrades,
               Bandit b) {
     Threshold *thres = malloc(b.K * sizeof(Threshold));
-    initThreshold(thres, b);
+    initThreshold(thres, b, data);
 
     double *totalGain = malloc(b.T * sizeof(double));
     double *buffer = malloc(b.T * sizeof(double));

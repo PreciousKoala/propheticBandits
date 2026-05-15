@@ -26,7 +26,7 @@ void ucb1(double *data, double *totalGain, double *avgLowThreshold, double *avgH
      */
 
     Threshold *thres = malloc(b.K * sizeof(Threshold));
-    initThreshold(thres, b);
+    initThreshold(thres, b, data);
 
     totalGain[0] = 0;
     uint8_t heldItems = 0;
@@ -65,6 +65,12 @@ void ucb1(double *data, double *totalGain, double *avgLowThreshold, double *avgH
 
         if (norm < gain) {
             norm = gain;
+        }
+    }
+
+    if (b.dynamicThres) {
+        for (uint64_t t = 0; t < b.T; t++) {
+            totalGain[t] -= totalGain[0];
         }
     }
 

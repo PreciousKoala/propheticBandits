@@ -5,14 +5,33 @@
 #include <string.h>
 #include <sys/stat.h>
 
-
+#include <gsl/gsl_sort.h>
 #include <util.h>
 
-void initThreshold(Threshold *thres, Bandit b) {
+#include <gsl/gsl_statistics_double.h>
+
+void initThreshold(Threshold *thres, Bandit b, double *data) {
+    double *threshold = malloc(b.thresholds * sizeof(double));
+
+    if (!b.dynamicThres) {
+        for (uint32_t th = 0; th < b.thresholds; th++) {
+            threshold[th] = (th + 1.0) / (b.thresholds + 1.0);
+        }
+    } else {
+        double *firstData = malloc(b.N * sizeof(double));
+        memcpy(firstData, data, b.N * sizeof(double));
+        gsl_sort(firstData, 1, b.N);
+        for (uint32_t th = 0; th < b.thresholds; th++) {
+            double quantile = (th + 1.0) / (b.thresholds + 1.0);
+            threshold[th] = gsl_stats_quantile_from_sorted_data(firstData, 1, b.N, quantile);
+        }
+        free(firstData);
+    }
+
     if (!b.dualThres) {
         for (uint32_t th = 0; th < b.K; th++) {
-            thres[th].low = (th + 1.0) / (b.K + 1.0);
-            thres[th].high = (th + 1.0) / (b.K + 1.0);
+            thres[th].low = threshold[th];
+            thres[th].high = threshold[th];
             thres[th].rewardSum = 0;
             thres[th].timesChosen = 0;
             thres[th].avgReward = 0;
@@ -22,8 +41,8 @@ void initThreshold(Threshold *thres, Bandit b) {
 
         for (uint32_t l = 0; l < b.thresholds; l++) {
             for (uint32_t h = l; h < b.thresholds; h++) {
-                thres[th].low = (l + 1.0) / (b.thresholds + 1.0);
-                thres[th].high = (h + 1.0) / (b.thresholds + 1.0);
+                thres[th].low = threshold[l];
+                thres[th].high = threshold[h];
                 thres[th].rewardSum = 0;
                 thres[th].timesChosen = 0;
                 thres[th].avgReward = 0;
@@ -31,6 +50,8 @@ void initThreshold(Threshold *thres, Bandit b) {
             }
         }
     }
+
+    free(threshold);
 }
 
 double runRound(Threshold *thres, const uint32_t th, Bandit b, double *data, double *avgLowThreshold,
@@ -163,17 +184,20 @@ void plotAlgorithms(char *ylabel, Bandit b, double *opt, double *median, double 
     if (!gnuplot) {
         exit(1);
     }
+    fprintf(gnuplot, "set zeroaxis\n");
     fprintf(gnuplot, "set xlabel 'Rounds'\n");
     fprintf(gnuplot, "set ylabel '");
     fprintf(gnuplot, "%s", ylabel);
     fprintf(gnuplot, "'\n");
-    if (bounded)
-        fprintf(gnuplot, "set yrange [0:1]\n");
-    else
-        fprintf(gnuplot, "set yrange [0:]\n");
+    if (bounded) {
+        fprintf(gnuplot, "set yrange [0 : 1<*]\n");
+        fprintf(gnuplot, "set arrow from graph 0, first 1 to graph 1, first 1 nohead dt 3 lw 1 lc rgb 'black'\n");
+    }
 
     fprintf(gnuplot, "set grid\n");
     fprintf(gnuplot, "set key outside\n");
+
+    fprintf(gnuplot, "unset key\n");
 
     fprintf(gnuplot, "plot ");
 
@@ -184,11 +208,11 @@ void plotAlgorithms(char *ylabel, Bandit b, double *opt, double *median, double 
         else if (b.medianOpt)
             optTitle = "Median";
 
-        fprintf(gnuplot, "'-' using 1:2 with lines lc rgb 'black' lw 1.5 title '%s', ", optTitle);
+        fprintf(gnuplot, "'-' using 1:2 with linespoints lc rgb 'black' pt 7 ps 1 pn 20 lw 1.5 title '%s', ", optTitle);
     }
 
     if (b.median) {
-        fprintf(gnuplot, "'-' using 1:2 with linespoints lc rgb 'black' pt 7 ps 1 pn 20 lw 1.5 title 'Median', ");
+        fprintf(gnuplot, "'-' using 1:2 with linespoints lc rgb 'black' pt 8 ps 1 pn 20 lw 1.5 title 'Median', ");
     }
 
     if (b.greedy) {
@@ -304,13 +328,13 @@ void plotThresholds(Bandit b, double *optLow, double *optHigh, double *median, d
         if (b.medianOpt)
             optTitle = "Median";
 
-        fprintf(gnuplot, "'-' using 1:2 with lines lc rgb 'black' lw 1.5 title '%s', ", optTitle);
+        fprintf(gnuplot, "'-' using 1:2 with linespoints lc rgb 'black' pt 7 ps 1 pn 20 lw 1.5 title '%s', ", optTitle);
         if (b.dualThres && !b.medianOpt)
-            fprintf(gnuplot, "'-' using 1:2 with lines lc rgb 'black' lw 1.5 notitle, ");
+            fprintf(gnuplot, "'-' using 1:2 with linespoints lc rgb 'black' pt 7 ps 1 pn 20 lw 1.5 notitle, ");
     }
 
     if (b.median && !b.medianOpt) {
-        fprintf(gnuplot, "'-' using 1:2 with linespoints lc rgb 'black' pt 7 ps 1 pn 20 lw 1.5 title 'Median', ");
+        fprintf(gnuplot, "'-' using 1:2 with linespoints lc rgb 'black' pt 8 ps 1 pn 20 lw 1.5 title 'Median', ");
     }
 
     if (b.greedy) {
@@ -458,12 +482,19 @@ void saveResults(char *filepath, Bandit b, char *resultType, double *median, dou
                  double *succElim, double *ucb1, double *ucb2, double *exp3) {
 
     char resultPath[256] = "prophetResults/";
-    char *dataName = strtok(basename(filepath), ".");
+    char temp[256];
+    strcpy(temp, filepath);
+    char *dataName = basename(temp);
+    char *dot = strrchr(dataName, '.');
+    if (dot)
+        *dot = '\0';
 
     char params[256];
     snprintf(params, sizeof(params), "K%u", b.thresholds);
     if (b.dualThres)
         strcat(params, "d");
+    if (b.dynamicThres)
+        strcat(params, "D");
     if (b.medianOpt)
         strcat(params, "o");
     if (b.bestHandOpt)
